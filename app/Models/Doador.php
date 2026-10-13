@@ -2,30 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable; // Importação alterada
+use Illuminate\Notifications\Notifiable; // Permite envio de e-mails de redefinição de senha
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Doador extends Model
+class Doador extends Authenticatable
 {
+    use Notifiable;
+
     protected $table = 'doadores';
 
     protected $fillable = [
-        'nome', 'email', 'senha', 'cpf', 
-        'data_nascimento', 'sexo', 'peso', 
-        'tipo_sanguineo', 'pontos'
+        'nome', 'cpf', 'data_nascimento', 'sexo', 
+        'peso', 'tipo_sanguineo', 'email', 'senha'
     ];
 
     protected $hidden = [
-        'senha', // Esconde a senha em serializações (JSON)
+        'senha', 'remember_token',
     ];
+
+    public function getAuthPassword()
+    {
+        return $this->senha;
+    }
 
     protected function casts(): array
     {
         return [
-            'data_nascimento' => 'date',
-            'peso' => 'decimal:2',
-            'senha' => 'hashed', // Prepara para Auth futuramente
+            'senha' => 'hashed',
         ];
     }
 
@@ -34,14 +38,8 @@ class Doador extends Model
         return $this->hasMany(Agendamento::class, 'fk_doador_id');
     }
 
-    public function doacoes(): HasMany
+    public function medalhas(): HasMany
     {
-        return $this->hasMany(Doacao::class, 'fk_doador_id');
-    }
-
-    public function medalhas(): BelongsToMany
-    {
-        return $this->belongsToMany(Medalha::class, 'conquistas', 'fk_doador_id', 'fk_medalha_id')
-                    ->withTimestamps();
+        return $this->hasMany(Medalha::class, 'fk_doador_id');
     }
 }

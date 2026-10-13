@@ -4,51 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\Hemocentro;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Hash; // Importação necessária para a senha
 
 class HemocentroController extends Controller
 {
     public function index()
     {
-        $hemocentros = Hemocentro::all();
-
+        $hemocentros = Hemocentro::paginate(10);
         return view('hemocentros.index', compact('hemocentros'));
+    }
+
+    public function create()
+    {
+        return view('hemocentros.create');
     }
 
     public function store(Request $request)
     {
+        // 1. Limpa as máscaras de CNPJ e Telefone
+        $request->merge([
+            'cnpj' => preg_replace('/[^0-9]/', '', $request->cnpj),
+            'telefone' => preg_replace('/[^0-9]/', '', $request->telefone)
+        ]);
+
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'required|email|unique:hemocentros,email',
             'senha' => 'required|string|min:6',
-            'cnpj' => 'required|string|unique:hemocentros,cnpj',
-            'telefone' => 'required|string|unique:hemocentros,telefone',
+            'cnpj' => 'required|string|size:14|unique:hemocentros,cnpj',
+            'telefone' => 'required|string|max:20',
             'endereco' => 'required|string|max:255',
-            'status' => 'nullable|in:pendente,ativo',
         ]);
 
-        if (!isset($validated['status'])) {
-            $validated['status'] = 'pendente';
-        }
-
+        // 2. Criptografa a senha e define o status inicial
         $validated['senha'] = Hash::make($validated['senha']);
+        $validated['status'] = 'pendente';
 
         Hemocentro::create($validated);
 
-        return redirect()->route('hemocentros.index')->with('success', 'Hemocentro cadastrado. Aguardando ativação.');
+        // 3. Redireciona para o login com mensagem de sucesso
+        return redirect()->route('login')->with('status', 'Instituição cadastrada com sucesso! Faça seu login para acompanhar a aprovação.');
     }
 
     public function show(string $id)
     {
         $hemocentro = Hemocentro::with(['alertas', 'agendamentos.doador'])->findOrFail($id);
-
         return view('hemocentros.show', compact('hemocentro'));
     }
 
     public function edit(string $id)
     {
         $hemocentro = Hemocentro::findOrFail($id);
-
         return view('hemocentros.edit', compact('hemocentro'));
     }
 
@@ -59,15 +65,10 @@ class HemocentroController extends Controller
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'required|email|unique:hemocentros,email,' . $hemocentro->id,
-            'senha' => 'sometimes|string|min:6',
-            'telefone' => 'required|string|unique:hemocentros,telefone,' . $hemocentro->id,
+            'telefone' => 'required|string|max:20',
             'endereco' => 'required|string|max:255',
             'status' => 'required|in:pendente,ativo',
         ]);
-
-        if ($request->filled('senha')) {
-            $validated['senha'] = Hash::make($validated['senha']);
-        }
 
         $hemocentro->update($validated);
 
@@ -78,7 +79,7 @@ class HemocentroController extends Controller
     {
         $hemocentro = Hemocentro::findOrFail($id);
         $hemocentro->delete();
-
+        
         return redirect()->route('hemocentros.index')->with('success', 'Hemocentro removido.');
     }
 }

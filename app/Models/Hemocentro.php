@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable; // Importação alterada
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Hemocentro extends Model
+class Hemocentro extends Authenticatable
 {
+    use Notifiable;
+
     protected $table = 'hemocentros';
 
     protected $fillable = [
@@ -15,8 +18,14 @@ class Hemocentro extends Model
     ];
 
     protected $hidden = [
-        'senha',
+        'senha', 'remember_token',
     ];
+
+    // Diz ao Laravel que a coluna de senha se chama 'senha'
+    public function getAuthPassword()
+    {
+        return $this->senha;
+    }
 
     protected function casts(): array
     {

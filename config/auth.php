@@ -42,6 +42,17 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Nossos novos Guards:
+        'doador' => [
+            'driver' => 'session',
+            'provider' => 'doadores',
+        ],
+
+        'hemocentro' => [
+            'driver' => 'session',
+            'provider' => 'hemocentros',
+        ],
     ],
 
     /*
@@ -64,13 +75,19 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // Nossos novos Providers apontando para os Models corretos:
+        'doadores' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Doador::class,
+        ],
+
+        'hemocentros' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Hemocentro::class,
+        ],
     ],
 
     /*

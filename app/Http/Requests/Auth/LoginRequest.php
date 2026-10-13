@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,52 +11,74 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'identificacao' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        $identificacao = $this->input('identificacao');
+        $password = $this->input('password');
+        $remember = $this->boolean('remember');
 
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
+        $isEmail = filter_var($identificacao, FILTER_VALIDATE_EMAIL);
+        
+        $credentialsAdmin = [];
+        $credentialsDoador = [];
+        $credentialsHemocentro = [];
+
+        // Se for e-mail, pode ser qualquer um dos 3 tipos de usuário
+        if ($isEmail) {
+            $credentialsAdmin = ['email' => $identificacao, 'password' => $password];
+            $credentialsDoador = ['email' => $identificacao, 'password' => $password];
+            $credentialsHemocentro = ['email' => $identificacao, 'password' => $password];
+        } else {
+            // sabemos que é Doador ou Hemocentro pelo tamanho
+            $documentoLimpo = preg_replace('/[^0-9]/', '', $identificacao);
+            
+            if (strlen($documentoLimpo) <= 11) {
+                $credentialsDoador = ['cpf' => $documentoLimpo, 'password' => $password];
+            } else {
+                $credentialsHemocentro = ['cnpj' => $documentoLimpo, 'password' => $password];
+            }
         }
 
-        RateLimiter::clear($this->throttleKey());
+        // Administrador
+        if (!empty($credentialsAdmin) && Auth::guard('web')->attempt($credentialsAdmin, $remember)) {
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        // Doador
+        if (!empty($credentialsDoador) && Auth::guard('doador')->attempt($credentialsDoador, $remember)) {
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        // Hemocentro
+        if (!empty($credentialsHemocentro) && Auth::guard('hemocentro')->attempt($credentialsHemocentro, $remember)) {
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'identificacao' => trans('auth.failed'),
+        ]);
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -65,22 +86,18 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
-
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'identificacao' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->input('identificacao')).'|'.$this->ip());
     }
 }

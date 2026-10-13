@@ -2,30 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Doador;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Models\Doador; // <--- A importação está aqui!
+use Illuminate\Support\Facades\Hash; // Importação necessária para a senha
 
 class DoadorController extends Controller
 {
+    public function index()
+    {
+        $doadores = Doador::paginate(10);
+        return view('doadores.index', compact('doadores'));
+    }
+
+    public function create()
+    {
+        return view('doadores.create');
+    }
+
     public function store(Request $request)
     {
+        // 1. Limpa a máscara do CPF (deixa apenas números)
+        $request->merge([
+            'cpf' => preg_replace('/[^0-9]/', '', $request->cpf)
+        ]);
+
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'email' => 'required|email|unique:doadores,email',
             'senha' => 'required|string|min:6',
-            'cpf' => 'required|string|unique:doadores,cpf',
+            'cpf' => 'required|string|size:11|unique:doadores,cpf',
             'data_nascimento' => 'required|date',
             'sexo' => 'nullable|string|max:20',
             'peso' => 'required|numeric|min:50',
             'tipo_sanguineo' => 'required|string|max:3',
         ]);
 
+        // 2. Criptografa a senha antes de salvar
         $validated['senha'] = Hash::make($validated['senha']);
 
         Doador::create($validated);
 
-        return redirect()->route('doadores.index')->with('success', 'Doador cadastrado com sucesso!');
+        // 3. Redireciona para o login com mensagem de sucesso
+        return redirect()->route('login')->with('status', 'Conta de Doador criada com sucesso! Faça seu login.');
     }
 
     public function show(string $id)
