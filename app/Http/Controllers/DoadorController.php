@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Doador;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash; // Importação necessária para a senha
+use Illuminate\Support\Facades\Auth; // Importação necessária para saber quem está logado
 
 class DoadorController extends Controller
 {
@@ -79,5 +80,37 @@ class DoadorController extends Controller
         $doador->delete();
 
         return redirect()->route('doadores.index')->with('success', 'Conta de doador encerrada.');
+    }
+
+    // Exibe a tela de edição do próprio doador logado
+    public function editProfile()
+    {
+        $doador = Auth::guard('doador')->user();
+        return view('painel.doador-edit', compact('doador'));
+    }
+
+    // Processa a atualização dos dados
+    public function updateProfile(Request $request)
+    {
+        /** @var \App\Models\Doador $doador */
+        $doador = Auth::guard('doador')->user();
+
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'email' => 'required|email|unique:doadores,email,' . $doador->id,
+            'peso' => 'required|numeric|min:50',
+            'senha' => 'nullable|string|min:6', // Senha é opcional na edição
+        ]);
+
+        // Se ele digitou uma senha nova, criptografa. Se não, remove do array para não apagar a antiga.
+        if ($request->filled('senha')) {
+            $validated['senha'] = Hash::make($validated['senha']);
+        } else {
+            unset($validated['senha']);
+        }
+
+        $doador->update($validated);
+
+        return redirect()->route('doador.perfil')->with('status', 'Seus dados foram atualizados com sucesso!');
     }
 }

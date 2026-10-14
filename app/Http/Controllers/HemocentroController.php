@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Hemocentro;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash; // Importação necessária para a senha
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class HemocentroController extends Controller
 {
@@ -81,5 +82,37 @@ class HemocentroController extends Controller
         $hemocentro->delete();
         
         return redirect()->route('hemocentros.index')->with('success', 'Hemocentro removido.');
+    }
+    public function editProfile()
+    {
+        $hemocentro = Auth::guard('hemocentro')->user();
+        return view('painel.hemocentro-edit', compact('hemocentro'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        /** @var \App\Models\Hemocentro $hemocentro */
+        $hemocentro = Auth::guard('hemocentro')->user();
+
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'telefone' => 'required|string|max:20',
+            'endereco' => 'required|string|max:255',
+            'email' => 'required|email|unique:hemocentros,email,' . $hemocentro->id,
+            'senha' => 'nullable|string|min:6',
+        ]);
+
+        // Limpa a máscara do telefone
+        $validated['telefone'] = preg_replace('/[^0-9]/', '', $validated['telefone']);
+
+        if ($request->filled('senha')) {
+            $validated['senha'] = Hash::make($validated['senha']);
+        } else {
+            unset($validated['senha']);
+        }
+
+        $hemocentro->update($validated);
+
+        return redirect()->route('hemocentro.perfil')->with('status', 'Dados institucionais atualizados com sucesso!');
     }
 }

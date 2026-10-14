@@ -30,7 +30,7 @@
             @elseif(Auth::guard('doador')->check())
                 <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Meu Painel</p>
                 <a href="{{ route('dashboard') }}" class="flex items-center px-3 py-2 bg-red-50 text-red-700 rounded-md group font-medium">Resumo e Doações</a>
-                <a href="#" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-md group font-medium mt-1">Editar Perfil</a>
+                <a href="{{ route('doador.perfil') }}" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-md group font-medium mt-1">Editar Perfil</a>
             @elseif(Auth::guard('hemocentro')->check())
                 <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Institucional</p>
                 <a href="{{ route('dashboard') }}" class="flex items-center px-3 py-2 bg-green-50 text-green-700 rounded-md group font-medium">Visão Geral</a>

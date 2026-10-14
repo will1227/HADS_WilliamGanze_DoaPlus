@@ -29,6 +29,18 @@ Route::get('/dashboard', function () {
     return redirect('/');
 })->middleware('auth:web,doador,hemocentro')->name('dashboard');
 
+// Rotas do Perfil do Doador
+Route::middleware('auth:doador')->group(function () {
+    Route::get('/meu-perfil', [App\Http\Controllers\DoadorController::class, 'editProfile'])->name('doador.perfil');
+    Route::put('/meu-perfil', [App\Http\Controllers\DoadorController::class, 'updateProfile'])->name('doador.perfil.update');
+});
+
+// Rotas do Perfil do Hemocentro
+Route::middleware('auth:hemocentro')->group(function () {
+    Route::get('/instituicao/perfil', [App\Http\Controllers\HemocentroController::class, 'editProfile'])->name('hemocentro.perfil');
+    Route::put('/instituicao/perfil', [App\Http\Controllers\HemocentroController::class, 'updateProfile'])->name('hemocentro.perfil.update');
+});
+
 Route::post('/admin/hemocentros/pre-cadastro', function (Illuminate\Http\Request $request) {
     $request->validate([
         'nome' => 'required|string|max:255',

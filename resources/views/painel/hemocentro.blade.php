@@ -22,7 +22,7 @@
             </div>
         </div>
         <div>
-            <a href="#" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm w-full md:w-auto block text-center">
+            <a href="{{ route('hemocentro.perfil') }}" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm w-full md:w-auto block text-center">
                 Editar Dados da Instituição
             </a>
         </div>
