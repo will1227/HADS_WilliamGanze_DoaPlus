@@ -47,6 +47,22 @@
                     <input type="text" name="endereco" value="{{ old('endereco', $hemocentro->endereco) }}" required class="block w-full border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 shadow-sm">
                 </div>
 
+                <!-- COORDENADAS PARA O MAPA -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <h4 class="text-sm font-semibold text-gray-700">Posição no Mapa (Pino)</h4>
+                        <p class="text-xs text-gray-500">Atualize estas coordenadas caso a instituição mude de localização física.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                        <input type="text" name="latitude" value="{{ old('latitude', $hemocentro->latitude) }}" required class="block w-full border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 shadow-sm text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                        <input type="text" name="longitude" value="{{ old('longitude', $hemocentro->longitude) }}" required class="block w-full border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 shadow-sm text-sm">
+                    </div>
+                </div>
+
                 <!-- SENHA -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>

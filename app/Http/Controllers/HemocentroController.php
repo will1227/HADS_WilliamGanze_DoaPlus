@@ -98,6 +98,8 @@ class HemocentroController extends Controller
             'nome' => 'required|string|max:255',
             'telefone' => 'required|string|max:20',
             'endereco' => 'required|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'email' => 'required|email|unique:hemocentros,email,' . $hemocentro->id,
             'senha' => 'nullable|string|min:6',
         ]);
@@ -113,6 +115,22 @@ class HemocentroController extends Controller
 
         $hemocentro->update($validated);
 
-        return redirect()->route('hemocentro.perfil')->with('status', 'Dados institucionais atualizados com sucesso!');
+        return redirect()->route('hemocentro.perfil')->with('status', 'Dados institucionais e localização no mapa atualizados com sucesso!');
+    }
+
+    // Recebe o ID do local provisório e salva o pedido
+    public function reivindicar(Request $request)
+    {
+        $request->validate([
+            'fk_reivindicacao_id' => 'required|exists:hemocentros,id'
+        ]);
+
+        /** @var \App\Models\Hemocentro $hemocentro */
+        $hemocentro = Auth::guard('hemocentro')->user();
+        
+        $hemocentro->fk_reivindicacao_id = $request->fk_reivindicacao_id;
+        $hemocentro->save();
+
+        return redirect()->route('dashboard')->with('status', 'Pedido enviado! Aguarde a aprovação do administrador para unificar a sua conta com o mapa.');
     }
 }

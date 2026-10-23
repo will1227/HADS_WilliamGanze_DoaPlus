@@ -48,4 +48,9 @@ class Hemocentro extends Authenticatable
     {
         return $this->hasMany(Alerta::class, 'fk_hemocentro_id');
     }
+
+    public function localReivindicado()
+    {
+        return $this->belongsTo(Hemocentro::class, 'fk_reivindicacao_id');
+    }
 }
