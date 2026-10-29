@@ -11,6 +11,7 @@
         </div>
     @endif
 
+    <!-- Cabeçalho do Hemocentro -->
     <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-center md:justify-between gap-4">
         <div class="flex items-center gap-4">
             <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold text-2xl uppercase shrink-0">
@@ -86,13 +87,117 @@
         @endif
 
     @else
-        <!-- Dashboard Ativo (Para o futuro) -->
-        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-10 text-center mt-6">
-            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-5">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <!-- =================================================================== -->
+        <!-- DASHBOARD ATIVO: GESTÃO DE AGENDAMENTOS                             -->
+        <!-- =================================================================== -->
+        
+        @php
+            // Filtra as collections enviadas pelo Controller
+            $pendentes = $agendamentos->where('status', 'pendente');
+            $confirmados = $agendamentos->where('status', 'confirmado');
+        @endphp
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            
+            <!-- COLUNA 1: NOVOS PEDIDOS (PENDENTES) -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-yellow-900 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Novos Pedidos
+                    </h3>
+                    <span class="bg-yellow-200 text-yellow-800 text-xs font-bold px-2.5 py-1 rounded-full">{{ $pendentes->count() }}</span>
+                </div>
+                
+                <div class="p-0 flex-1 bg-gray-50/50">
+                    @forelse($pendentes as $agendamento)
+                        <div class="p-6 border-b border-gray-200 last:border-0 bg-white m-4 rounded-lg shadow-sm">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 class="font-bold text-gray-900">{{ $agendamento->doador->nome }}</h4>
+                                    <p class="text-sm text-gray-500 mt-0.5">Tipo Sanguíneo: <span class="font-bold text-red-600">{{ $agendamento->doador->tipo_sanguineo }}</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-gray-800">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('d/m/Y') }}</p>
+                                    <p class="text-sm text-gray-500 font-medium">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('H:i') }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2 mt-4">
+                                <form action="{{ route('agendamentos.status', $agendamento->id) }}" method="POST" class="flex-1">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="cancelado">
+                                    <button type="submit" class="w-full px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50 transition">Recusar</button>
+                                </form>
+                                <form action="{{ route('agendamentos.status', $agendamento->id) }}" method="POST" class="flex-1">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="confirmado">
+                                    <button type="submit" class="w-full px-3 py-2 bg-yellow-500 text-white rounded-md text-sm font-medium hover:bg-yellow-600 transition shadow-sm">Confirmar Horário</button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center text-gray-500">
+                            <p>Nenhum pedido de agendamento pendente.</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900">Conta Ativa e Unificada!</h3>
-            <p class="text-gray-500 mt-2 text-lg">A sua instituição já está visível e operante no mapa para todos os doadores.</p>
+
+            <!-- COLUNA 2: AGUARDANDO COMPARECIMENTO (CONFIRMADOS) -->
+            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-200 bg-blue-50 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-blue-900 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Agendamentos Confirmados
+                    </h3>
+                    <span class="bg-blue-200 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full">{{ $confirmados->count() }}</span>
+                </div>
+                
+                <div class="p-0 flex-1 bg-gray-50/50">
+                    @forelse($confirmados as $agendamento)
+                        <div class="p-6 border-b border-gray-200 last:border-0 bg-white m-4 rounded-lg shadow-sm border-l-4 border-l-blue-500">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 class="font-bold text-gray-900">{{ $agendamento->doador->nome }}</h4>
+                                    <p class="text-sm text-gray-500 mt-0.5">Tipo: <span class="font-bold text-red-600">{{ $agendamento->doador->tipo_sanguineo }}</span> | Sexo: {{ $agendamento->doador->sexo }}</p>
+                                </div>
+                                <div class="text-right bg-blue-50 px-3 py-1.5 rounded-md">
+                                    <p class="font-bold text-blue-900">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('d/m/Y') }}</p>
+                                    <p class="text-sm text-blue-700 font-bold">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('H:i') }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                                <form action="{{ route('agendamentos.status', $agendamento->id) }}" method="POST" class="w-1/3">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="cancelado">
+                                    <button type="submit" class="w-full px-3 py-2 bg-white border border-red-200 text-red-600 rounded-md text-xs font-medium hover:bg-red-50 transition" title="Faltou ou Cancelou">
+                                        Faltou
+                                    </button>
+                                </form>
+                                <form action="{{ route('agendamentos.status', $agendamento->id) }}" method="POST" class="w-2/3">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="concluido">
+                                    <button type="submit" class="w-full px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition shadow-sm flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                                        Concluir Doação
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center text-gray-500">
+                            <p>Nenhum agendamento confirmado para os próximos dias.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+            
         </div>
     @endif
 

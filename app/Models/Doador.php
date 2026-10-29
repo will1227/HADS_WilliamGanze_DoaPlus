@@ -43,39 +43,32 @@ class Doador extends Authenticatable
         return $this->hasMany(Medalha::class, 'fk_doador_id');
     }
 
-    // Relacionamento (Um Doador tem várias Doações)
     public function doacoes()
     {
         return $this->hasMany(Doacao::class, 'fk_doador_id');
     }
 
-    // 1. Calcula a data exata em que ele poderá doar novamente
     public function getDataProximaDoacaoAttribute()
     {
-        // Pega a última doação do doador
         $ultimaDoacao = $this->doacoes()->orderBy('data_coleta', 'desc')->first();
         
-        // Se nunca doou, pode doar hoje
         if (!$ultimaDoacao) {
-            return now(); 
+            return now()->startOfDay(); 
         }
 
         $intervaloDias = $this->sexo === 'Masculino' ? 60 : 90;
         $limiteAnual = $this->sexo === 'Masculino' ? 4 : 3;
 
-        // Regra 1: Data liberada com base no intervalo mínimo (60 ou 90 dias)
-        $dataLiberacaoIntervalo = \Carbon\Carbon::parse($ultimaDoacao->data_coleta)->addDays($intervaloDias);
+        $dataLiberacaoIntervalo = \Carbon\Carbon::parse($ultimaDoacao->data_coleta)->addDays($intervaloDias)->startOfDay();
 
-        // Regra 2: Verifica limite anual (últimos 12 meses)
         $doacoesUltimos12Meses = $this->doacoes()
             ->where('data_coleta', '>=', now()->subMonths(12))
             ->orderBy('data_coleta', 'asc')
             ->get();
 
         if ($doacoesUltimos12Meses->count() >= $limiteAnual) {
-            // Se bateu o limite, ele só pode doar 1 ano após a PRIMEIRA doação desse ciclo
             $primeiraDoCiclo = \Carbon\Carbon::parse($doacoesUltimos12Meses->first()->data_coleta);
-            $dataLiberacaoAnual = $primeiraDoCiclo->addMonths(12);
+            $dataLiberacaoAnual = $primeiraDoCiclo->addMonths(12)->startOfDay();
             
             return $dataLiberacaoIntervalo->max($dataLiberacaoAnual);
         }
@@ -83,9 +76,39 @@ class Doador extends Authenticatable
         return $dataLiberacaoIntervalo;
     }
 
-    // 2. Retorna true ou false se ele está apto hoje
     public function getPodeDoarAttribute()
     {
-        return now()->greaterThanOrEqualTo($this->data_proxima_doacao);
+        if ($this->doacoes()->count() === 0) {
+            return true;
+        }
+        return now()->startOfDay()->greaterThanOrEqualTo(\Carbon\Carbon::parse($this->data_proxima_doacao)->startOfDay());
+    }
+
+    // 3. Calcula a Patente (Gamificação com cores de metais/gemas)
+    public function getPatenteAttribute()
+    {
+        $totalDoacoes = $this->doacoes()->count();
+
+        if ($totalDoacoes >= 40) {
+            // MESTRE / DESAFIANTE (Roxo / Ametista)
+            return ['nome' => 'Embaixador (Mestre)', 'bg' => 'bg-purple-100', 'text' => 'text-purple-700'];
+        } elseif ($totalDoacoes >= 20) {
+            // DIAMANTE (Ciano / Gelo)
+            return ['nome' => 'Parceiro Vital (Diamante)', 'bg' => 'bg-cyan-100', 'text' => 'text-cyan-700'];
+        } elseif ($totalDoacoes >= 10) {
+            // PLATINA / ESMERALDA (Verde Esmeralda)
+            return ['nome' => 'Veterano (Platina)', 'bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'];
+        } elseif ($totalDoacoes >= 6) {
+            // OURO (Amarelo / Dourado)
+            return ['nome' => 'Frequente (Ouro)', 'bg' => 'bg-yellow-100', 'text' => 'text-yellow-700'];
+        } elseif ($totalDoacoes >= 3) {
+            // PRATA (Cinza Metálico)
+            return ['nome' => 'Voluntário (Prata)', 'bg' => 'bg-slate-200', 'text' => 'text-slate-700'];
+        } elseif ($totalDoacoes >= 1) {
+            // BRONZE (Laranja Escuro / Cobre)
+            return ['nome' => 'Iniciante (Bronze)', 'bg' => 'bg-orange-100', 'text' => 'text-orange-800'];
+        }
+
+        return ['nome' => 'Sem Doações', 'bg' => 'bg-gray-100', 'text' => 'text-gray-500'];
     }
 }

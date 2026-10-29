@@ -5,6 +5,50 @@
 @section('conteudo')
 <div class="max-w-5xl mx-auto space-y-6">
 
+    <!-- Popup de Confirmação de Sucesso (JS Puro) -->
+    @if (session('status'))
+        <div id="toast-sucesso" class="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl border border-gray-700 transition-opacity duration-500 opacity-100">
+            <div class="bg-green-500 rounded-full p-1 shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <p class="font-medium text-sm">{{ session('status') }}</p>
+            <button onclick="document.getElementById('toast-sucesso').style.display='none'" class="ml-4 text-gray-400 hover:text-white transition shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <script>
+            setTimeout(() => {
+                let toast = document.getElementById('toast-sucesso');
+                if(toast) {
+                    toast.classList.replace('opacity-100', 'opacity-0');
+                    setTimeout(() => toast.style.display = 'none', 500);
+                }
+            }, 5000);
+        </script>
+    @endif
+
+    <!-- Popup de Erro de Aptidão (JS Puro) -->
+    @if (session('erro'))
+        <div id="toast-erro" class="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl border border-gray-700 transition-opacity duration-500 opacity-100">
+            <div class="bg-red-500 rounded-full p-1 text-white shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            <p class="font-medium text-sm">{{ session('erro') }}</p>
+            <button onclick="document.getElementById('toast-erro').style.display='none'" class="ml-4 text-gray-400 hover:text-white transition shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <script>
+            setTimeout(() => {
+                let toast = document.getElementById('toast-erro');
+                if(toast) {
+                    toast.classList.replace('opacity-100', 'opacity-0');
+                    setTimeout(() => toast.style.display = 'none', 500);
+                }
+            }, 5000);
+        </script>
+    @endif
+
     <!-- Cabeçalho do Doador -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-center md:justify-between gap-4">
         <div class="flex items-center gap-4">
@@ -24,7 +68,7 @@
     <!-- Seção de Gamificação Dinâmica -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        <!-- Vidas Salvas (1 doação = até 4 vidas) -->
+        <!-- Vidas Salvas -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
             <div class="p-3 bg-red-50 text-red-600 rounded-lg">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
@@ -35,13 +79,14 @@
             </div>
         </div>
 
+        <!-- Patente Atual (Elos) -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
-            <div class="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+            <div class="p-3 {{ $doador->patente['bg'] }} {{ $doador->patente['text'] }} rounded-lg transition-colors duration-500">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
             </div>
             <div>
-                <p class="text-sm text-gray-500 font-medium">Medalhas</p>
-                <p class="text-2xl font-bold text-gray-900">{{ $doador->doacoes->count() > 0 ? 'Doador Ativo' : 'Iniciante' }}</p>
+                <p class="text-sm text-gray-500 font-medium">Patente Atual</p>
+                <p class="text-xl font-bold text-gray-900">{{ $doador->patente['nome'] }}</p>
             </div>
         </div>
 
@@ -53,7 +98,9 @@
             <div>
                 <p class="text-sm text-gray-500 font-medium">Próxima Doação</p>
                 @if($doador->pode_doar)
-                    <p class="text-lg font-bold text-green-600">Apto para Doar!</p>
+                    <a href="{{ route('agendamentos.create') }}" class="inline-block mt-1 px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition shadow-sm">
+                        Agendar Agora
+                    </a>
                 @else
                     <p class="text-lg font-bold text-gray-900">{{ \Carbon\Carbon::parse($doador->data_proxima_doacao)->format('d/m/Y') }}</p>
                     <p class="text-xs text-red-500">Em intervalo de descanso</p>
@@ -61,6 +108,40 @@
             </div>
         </div>
     </div>
+
+    <!-- Agendamentos Pendentes/Futuros -->
+    @if($doador->agendamentos()->whereIn('status', ['pendente', 'confirmado'])->count() > 0)
+    <div class="bg-blue-50 rounded-xl shadow-sm border border-blue-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-blue-900">Seus Agendamentos Ativos</h3>
+        </div>
+        <div class="p-0">
+            @foreach($doador->agendamentos()->with('hemocentro')->whereIn('status', ['pendente', 'confirmado'])->orderBy('data_hora', 'asc')->get() as $agendamento)
+                <div class="flex items-center justify-between p-6 border-b border-blue-100 last:border-0 hover:bg-blue-100/50 transition">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800">{{ $agendamento->hemocentro->nome ?? 'Hemocentro Parceiro' }}</p>
+                            <p class="text-sm text-gray-600">
+                                @if($agendamento->status === 'pendente')
+                                    <span class="text-yellow-600 font-bold">Aguardando confirmação</span>
+                                @else
+                                    <span class="text-green-600 font-bold">Confirmado</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-blue-900">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('d/m/Y') }}</p>
+                        <p class="text-sm font-bold text-blue-700">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('H:i') }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     <!-- Histórico de Doações Dinâmico -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
