@@ -9,11 +9,15 @@ use App\Http\Controllers\DoacaoController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\MedalhaController;
 
-// 1. Rota da Tela Inicial (Mapa)
+// 1. Rota da Tela Inicial (Mapa e FAQ)
 Route::get('/', function () {
-    $hemocentros = \App\Models\Hemocentro::where('status', 'ativo')->get(['nome', 'endereco', 'latitude', 'longitude']);
+    // Busca todos os hemocentros que têm latitude e longitude preenchidas (ativos e provisórios)
+    $hemocentros = \App\Models\Hemocentro::whereNotNull('latitude')
+                                         ->whereNotNull('longitude')
+                                         ->get();
+                                         
     return view('welcome', compact('hemocentros'));
-});
+})->name('home');
 
 // 2. Dashboard central para diferentes tipos de usuários (admin, doador, hemocentro)
 Route::get('/dashboard', function () {
@@ -56,10 +60,9 @@ Route::middleware('auth:doador')->group(function () {
     Route::get('/meu-perfil', [DoadorController::class, 'editProfile'])->name('doador.perfil');
     Route::put('/meu-perfil', [DoadorController::class, 'updateProfile'])->name('doador.perfil.update');
 
-
-        // Rotas de Agendamento do Doador
-    Route::get('/agendar', [App\Http\Controllers\AgendamentoController::class, 'create'])->name('agendamentos.create');
-    Route::post('/agendar', [App\Http\Controllers\AgendamentoController::class, 'store'])->name('agendamentos.store');
+    // Rotas de Agendamento do Doador
+    Route::get('/agendar', [AgendamentoController::class, 'create'])->name('agendamentos.create');
+    Route::post('/agendar', [AgendamentoController::class, 'store'])->name('agendamentos.store');
 });
 
 // 4. Rotas do Perfil e Reivindicação do Hemocentro
@@ -71,7 +74,7 @@ Route::middleware('auth:hemocentro')->group(function () {
     Route::post('/instituicao/reivindicar', [HemocentroController::class, 'reivindicar'])->name('hemocentro.reivindicar');
 
     // Rotas de Gestão do Hemocentro
-    Route::patch('/agendamentos/{id}/status', [App\Http\Controllers\AgendamentoController::class, 'atualizarStatus'])->name('agendamentos.status');
+    Route::patch('/agendamentos/{id}/status', [AgendamentoController::class, 'atualizarStatus'])->name('agendamentos.status');
 });
 
 // 5. Rotas do Administrador (Pré-cadastro, Aprovação e Rejeição)
@@ -151,8 +154,6 @@ Route::prefix('app')->group(function () {
 Route::get('/register/doador', function () {
     return view('auth.register-doador');
 });
-
-
 
 Route::get('/register/hemocentro', function () {
     return view('auth.register-hemocentro');
