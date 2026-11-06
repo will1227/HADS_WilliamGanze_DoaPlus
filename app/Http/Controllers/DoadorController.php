@@ -32,10 +32,16 @@ class DoadorController extends Controller
             'email' => 'required|email|unique:doadores,email',
             'senha' => 'required|string|min:6',
             'cpf' => 'required|string|size:11|unique:doadores,cpf',
-            'data_nascimento' => 'required|date',
-            'sexo' => 'nullable|string|max:20',
+            // Idade legal para doar: 16 a 69 anos
+            'data_nascimento' => 'required|date|before_or_equal:-16 years|after:-70 years',
+            // Define o intervalo entre doações (60 dias / 4 por ano ou 90 dias / 3 por ano)
+            'sexo' => 'required|in:Masculino,Feminino',
             'peso' => 'required|numeric|min:50',
             'tipo_sanguineo' => 'required|string|max:3',
+        ], [
+            'data_nascimento.before_or_equal' => 'É preciso ter pelo menos 16 anos para doar sangue.',
+            'data_nascimento.after' => 'A idade máxima para doar sangue é 69 anos.',
+            'sexo.required' => 'Informe o sexo: ele define o intervalo entre as doações.',
         ]);
 
         // 2. Criptografa a senha antes de salvar
@@ -100,6 +106,9 @@ class DoadorController extends Controller
             'email' => 'required|email|unique:doadores,email,' . $doador->id,
             'peso' => 'required|numeric|min:50',
             'senha' => 'nullable|string|min:6', // Senha é opcional na edição
+            // Localização para alertas regionais: opcional, mas latitude e longitude andam juntas
+            'latitude' => 'nullable|required_with:longitude|numeric|between:-90,90',
+            'longitude' => 'nullable|required_with:latitude|numeric|between:-180,180',
         ]);
 
         // Se ele digitou uma senha nova, criptografa. Se não, remove do array para não apagar a antiga.
@@ -112,5 +121,13 @@ class DoadorController extends Controller
         $doador->update($validated);
 
         return redirect()->route('doador.perfil')->with('status', 'Seus dados foram atualizados com sucesso!');
+    }
+
+    // Tira os alertas de urgência da lista de novos do painel
+    public function marcarAlertasLidos(Request $request)
+    {
+        $request->user('doador')->unreadNotifications->markAsRead();
+
+        return redirect()->route('dashboard');
     }
 }

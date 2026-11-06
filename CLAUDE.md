@@ -45,3 +45,13 @@ php artisan boost:install
 
 Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
 </laravel-boost-guidelines>
+
+# Registro de alterações para estudo (regra do projeto)
+
+Toda alteração feita no código deve ser explicada em `ALTERACOES.txt`, na raiz do projeto (arquivo fora do Git, listado no `.gitignore`). O autor usa esse arquivo para estudar o código antes de apresentar o TCC.
+
+- Ao terminar cada tarefa, acrescente ao final do arquivo uma seção com a data (`DD/MM/AAAA`) e a tarefa. Não reescreva nem apague seções antigas; se uma mudança nova altera algo já explicado, diga isso na seção nova.
+- Para cada parte, explique em português simples: o problema ou requisito (citando HU/RF do DVP quando houver), o que foi feito, quais arquivos e métodos mudaram, por que essa solução foi escolhida e como foi testada.
+- Explique os conceitos de Laravel/Tailwind usados que ainda não estão no glossário do arquivo e acrescente-os lá.
+- Quando fizer sentido, inclua como demonstrar a funcionalidade e perguntas que a banca pode fazer, com resposta.
+- Se o banco mudar, liste as migrations e lembre de atualizar o modelo lógico do DVP.

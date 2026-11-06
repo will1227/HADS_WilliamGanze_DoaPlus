@@ -6,6 +6,7 @@ use App\Models\Hemocentro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class HemocentroController extends Controller
 {
@@ -122,12 +123,20 @@ class HemocentroController extends Controller
     public function reivindicar(Request $request)
     {
         $request->validate([
-            'fk_reivindicacao_id' => 'required|exists:hemocentros,id'
+            'fk_reivindicacao_id' => [
+                'required',
+                Rule::exists('hemocentros', 'id')->where('status', 'provisorio'),
+            ],
         ]);
 
         /** @var \App\Models\Hemocentro $hemocentro */
         $hemocentro = Auth::guard('hemocentro')->user();
-        
+
+        // Só contas aguardando aprovação podem reivindicar um ponto
+        if ($hemocentro->status !== 'pendente') {
+            return redirect()->route('dashboard');
+        }
+
         $hemocentro->fk_reivindicacao_id = $request->fk_reivindicacao_id;
         $hemocentro->save();
 

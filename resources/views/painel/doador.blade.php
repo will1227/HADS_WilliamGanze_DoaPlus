@@ -1,185 +1,131 @@
 @extends('layouts.painel')
 
-@section('titulo', 'Área do Doador')
+@section('titulo', 'Meu painel')
 
 @section('conteudo')
-<div class="max-w-5xl mx-auto space-y-6">
+@php
+    $doacoes = $doador->doacoes()->with('hemocentro')->orderByDesc('data_coleta')->get();
+    $agendamento = $doador->agendamentosEmAberto()->with('hemocentro')->orderBy('data_hora')->first();
+    $proximaDoacao = \Carbon\Carbon::parse($doador->data_proxima_doacao)->locale('pt_BR');
+    $diasRestantes = (int) round(today()->diffInDays($proximaDoacao->copy()->startOfDay()));
+@endphp
 
-    <!-- Popup de Confirmação de Sucesso (JS Puro) -->
-    @if (session('status'))
-        <div id="toast-sucesso" class="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl border border-gray-700 transition-opacity duration-500 opacity-100">
-            <div class="bg-green-500 rounded-full p-1 shrink-0">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+<div class="max-w-3xl">
+    {{-- Alertas de urgência de hemocentros próximos (HU10) --}}
+    @php($alertasNovos = $doador->alertasNovos())
+    @if ($alertasNovos->isNotEmpty())
+        <section id="alertas" class="mb-12 rounded-lg bg-sangue-claro px-5 py-5 sm:px-6" aria-labelledby="alertasTitulo">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                <h2 id="alertasTitulo" class="font-titulo text-[1.0625rem] font-bold text-sangue-escuro">
+                    {{ $alertasNovos->count() === 1 ? 'Um hemocentro perto de você precisa do seu sangue' : 'Hemocentros perto de você precisam do seu sangue' }}
+                </h2>
+                <form method="POST" action="{{ route('alertas.lidos') }}">
+                    @csrf
+                    <button type="submit" class="botao-texto text-sm">Marcar como vistos</button>
+                </form>
             </div>
-            <p class="font-medium text-sm">{{ session('status') }}</p>
-            <button onclick="document.getElementById('toast-sucesso').style.display='none'" class="ml-4 text-gray-400 hover:text-white transition shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-        <script>
-            setTimeout(() => {
-                let toast = document.getElementById('toast-sucesso');
-                if(toast) {
-                    toast.classList.replace('opacity-100', 'opacity-0');
-                    setTimeout(() => toast.style.display = 'none', 500);
-                }
-            }, 5000);
-        </script>
-    @endif
-
-    <!-- Popup de Erro de Aptidão (JS Puro) -->
-    @if (session('erro'))
-        <div id="toast-erro" class="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-2xl border border-gray-700 transition-opacity duration-500 opacity-100">
-            <div class="bg-red-500 rounded-full p-1 text-white shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </div>
-            <p class="font-medium text-sm">{{ session('erro') }}</p>
-            <button onclick="document.getElementById('toast-erro').style.display='none'" class="ml-4 text-gray-400 hover:text-white transition shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-        <script>
-            setTimeout(() => {
-                let toast = document.getElementById('toast-erro');
-                if(toast) {
-                    toast.classList.replace('opacity-100', 'opacity-0');
-                    setTimeout(() => toast.style.display = 'none', 500);
-                }
-            }, 5000);
-        </script>
-    @endif
-
-    <!-- Cabeçalho do Doador -->
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-center md:justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-2xl uppercase">
-                {{ substr($doador->nome, 0, 1) }}
-            </div>
-            <div>
-                <h2 class="text-xl font-bold text-gray-900">Olá, {{ explode(' ', $doador->nome)[0] }}!</h2>
-                <p class="text-sm text-gray-500">Tipo Sanguíneo: <span class="font-bold text-red-600">{{ $doador->tipo_sanguineo }}</span></p>
-            </div>
-        </div>
-        <div>
-            <a href="{{ route('doador.perfil') }}" class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">Editar Perfil</a>
-        </div>
-    </div>
-
-    <!-- Seção de Gamificação Dinâmica -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <!-- Vidas Salvas -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
-            <div class="p-3 bg-red-50 text-red-600 rounded-lg">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500 font-medium">Vidas Salvas</p>
-                <p class="text-2xl font-bold text-gray-900">{{ $doador->doacoes->count() * 4 }}</p>
-            </div>
-        </div>
-
-        <!-- Patente Atual (Elos) -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
-            <div class="p-3 {{ $doador->patente['bg'] }} {{ $doador->patente['text'] }} rounded-lg transition-colors duration-500">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500 font-medium">Patente Atual</p>
-                <p class="text-xl font-bold text-gray-900">{{ $doador->patente['nome'] }}</p>
-            </div>
-        </div>
-
-        <!-- Algoritmo de Aptidão em Ação -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
-            <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500 font-medium">Próxima Doação</p>
-                @if($doador->pode_doar)
-                    <a href="{{ route('agendamentos.create') }}" class="inline-block mt-1 px-4 py-1.5 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition shadow-sm">
-                        Agendar Agora
-                    </a>
-                @else
-                    <p class="text-lg font-bold text-gray-900">{{ \Carbon\Carbon::parse($doador->data_proxima_doacao)->format('d/m/Y') }}</p>
-                    <p class="text-xs text-red-500">Em intervalo de descanso</p>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- Agendamentos Pendentes/Futuros -->
-    @if($doador->agendamentos()->whereIn('status', ['pendente', 'confirmado'])->count() > 0)
-    <div class="bg-blue-50 rounded-xl shadow-sm border border-blue-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-blue-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-blue-900">Seus Agendamentos Ativos</h3>
-        </div>
-        <div class="p-0">
-            @foreach($doador->agendamentos()->with('hemocentro')->whereIn('status', ['pendente', 'confirmado'])->orderBy('data_hora', 'asc')->get() as $agendamento)
-                <div class="flex items-center justify-between p-6 border-b border-blue-100 last:border-0 hover:bg-blue-100/50 transition">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
+            <ul class="mt-3 divide-y divide-sangue/15">
+                @foreach ($alertasNovos as $notificacao)
+                    <li class="grid grid-cols-[3.5rem_1fr] gap-x-4 py-4">
+                        <span class="font-titulo text-3xl font-bold leading-none tracking-[-0.03em] text-sangue">{{ $notificacao->data['tipo_sanguineo'] }}</span>
                         <div>
-                            <p class="font-bold text-gray-800">{{ $agendamento->hemocentro->nome ?? 'Hemocentro Parceiro' }}</p>
-                            <p class="text-sm text-gray-600">
-                                @if($agendamento->status === 'pendente')
-                                    <span class="text-yellow-600 font-bold">Aguardando confirmação</span>
-                                @else
-                                    <span class="text-green-600 font-bold">Confirmado</span>
-                                @endif
-                            </p>
+                            <p class="font-bold leading-snug">{{ $notificacao->data['hemocentro'] }}</p>
+                            <p class="mt-1 leading-snug">{{ $notificacao->data['mensagem'] }}</p>
+                            <p class="mt-1 text-sm text-cinza">Vale até {{ \Illuminate\Support\Carbon::parse($notificacao->data['data_expiracao'])->format('d/m') }}.</p>
+                            @if ($doador->pode_doar && ! $agendamento)
+                                <a href="{{ route('agendamentos.create', ['hemocentro' => $notificacao->data['hemocentro_id']]) }}" class="botao-sangue botao-pequeno mt-3">Agendar neste hemocentro</a>
+                            @endif
                         </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-blue-900">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('d/m/Y') }}</p>
-                        <p class="text-sm font-bold text-blue-700">{{ \Carbon\Carbon::parse($agendamento->data_hora)->format('H:i') }}</p>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
     @endif
 
-    <!-- Histórico de Doações Dinâmico -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-800">Últimas Doações</h3>
+    {{-- A frase principal muda conforme a situação do doador, como o "km" da tela inicial --}}
+    <section>
+        <p class="text-cinza">Olá, {{ explode(' ', $doador->nome)[0] }}.</p>
+
+        @if ($agendamento)
+            @php($dataHora = $agendamento->data_hora->locale('pt_BR'))
+            <h1 class="manchete mt-2">Sua doação é <span class="numero">{{ $dataHora->translatedFormat('j \d\e M') }}</span></h1>
+            <p class="mt-4 max-w-[44ch] text-[1.0625rem] leading-normal text-cinza">
+                Às <strong class="text-tinta">{{ $dataHora->format('H:i') }}</strong>, no {{ $agendamento->hemocentro->nome }}.
+                {{ $agendamento->status === 'pendente' ? 'O hemocentro ainda vai confirmar o horário.' : 'O hemocentro já confirmou o horário.' }}
+            </p>
+            <div class="mt-5">
+                <span @class(['selo-breve' => $agendamento->status === 'pendente', 'selo-ok' => $agendamento->status !== 'pendente'])>
+                    {{ $agendamento->status === 'pendente' ? 'Aguardando confirmação' : 'Confirmado' }}
+                </span>
+            </div>
+        @elseif ($doador->pode_doar)
+            <h1 class="manchete mt-2">Você já pode doar.</h1>
+            <p class="mt-4 max-w-[40ch] text-[1.0625rem] leading-normal text-cinza">Escolha um hemocentro e o melhor horário para você.</p>
+            <div class="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+                <a href="{{ route('agendamentos.create') }}" class="botao-sangue">Agendar doação</a>
+                <a href="{{ route('home') }}" class="botao-texto">Ver hemocentros no mapa</a>
+            </div>
+        @elseif (! $doador->dentro_da_faixa_etaria)
+            <h1 class="manchete mt-2">Doação indisponível pela idade.</h1>
+            <p class="mt-4 max-w-[40ch] text-[1.0625rem] leading-normal text-cinza">A doação de sangue é permitida dos 16 aos 69 anos.</p>
+        @else
+            <h1 class="manchete mt-2">Faltam <span class="numero">{{ $diasRestantes }} {{ $diasRestantes === 1 ? 'dia' : 'dias' }}</span> para doar de novo.</h1>
+            <p class="mt-4 max-w-[44ch] text-[1.0625rem] leading-normal text-cinza">
+                Você pode agendar a partir de <strong class="text-tinta">{{ $proximaDoacao->translatedFormat('j \d\e F') }}</strong>.
+                O intervalo entre doações dá tempo para o corpo repor o sangue.
+            </p>
+        @endif
+    </section>
+
+    @unless ($doador->temLocalizacao())
+        <p class="aviso-ok mt-10 max-w-[60ch]">
+            Quer saber quando um hemocentro perto de você precisar do seu tipo sanguíneo?
+            <a href="{{ route('doador.perfil') }}#localizacao" class="font-bold underline underline-offset-4 hover:text-sangue">Informe sua localização</a>.
+        </p>
+    @endunless
+
+    {{-- Números do doador --}}
+    <dl class="mt-12 grid grid-cols-2 gap-x-6 border-b border-linha sm:grid-cols-4">
+        <div class="border-t border-linha py-5">
+            <dt class="text-sm text-cinza">Doações</dt>
+            <dd class="mt-1 font-titulo text-3xl font-bold tabular-nums">{{ $doacoes->count() }}</dd>
         </div>
-        
-        <div class="p-0">
-            @forelse($doador->doacoes()->with('hemocentro')->orderBy('data_coleta', 'desc')->take(5)->get() as $doacao)
-                <div class="flex items-center justify-between p-6 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-800">{{ $doacao->hemocentro->nome ?? 'Hemocentro Parceiro' }}</p>
-                            <p class="text-sm text-gray-500">Doação de Sangue Tradicional</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-gray-900">{{ \Carbon\Carbon::parse($doacao->data_coleta)->format('d/m/Y') }}</p>
-                        <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full mt-1">Concluída</span>
-                    </div>
-                </div>
+        <div class="border-t border-linha py-5">
+            <dt class="text-sm text-cinza">Pessoas ajudadas</dt>
+            <dd class="mt-1 font-titulo text-3xl font-bold tabular-nums">até {{ $doacoes->count() * 4 }}</dd>
+        </div>
+        <div class="border-t border-linha py-5">
+            <dt class="text-sm text-cinza">Tipo sanguíneo</dt>
+            <dd class="mt-1 font-titulo text-3xl font-bold">{{ $doador->tipo_sanguineo }}</dd>
+        </div>
+        <div class="border-t border-linha py-5">
+            <dt class="text-sm text-cinza">Patente</dt>
+            <dd class="mt-2"><span class="selo {{ $doador->patente['bg'] }} {{ $doador->patente['text'] }} font-bold">{{ $doador->patente['nome'] }}</span></dd>
+        </div>
+    </dl>
+
+    {{-- Histórico, no mesmo desenho da lista "Onde doar" --}}
+    <section class="mt-12">
+        <div class="secao-cab">
+            <h2>Suas doações</h2>
+            @if ($doacoes->isNotEmpty())
+                <span>{{ $doacoes->count() }} no total</span>
+            @endif
+        </div>
+
+        <ul class="linhas">
+            @forelse ($doacoes as $doacao)
+                <li class="grid grid-cols-[14px_1fr_auto] items-start gap-x-3.5 py-4">
+                    <x-application-logo class="mt-1 h-[15px] w-3 text-arterial" />
+                    <span class="font-bold leading-snug">{{ $doacao->hemocentro->nome ?? 'Hemocentro' }}</span>
+                    <span class="font-titulo font-bold tabular-nums">{{ $doacao->data_coleta->format('d/m/Y') }}</span>
+                </li>
             @empty
-                <div class="p-8 text-center flex flex-col items-center justify-center">
-                    <div class="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h4 class="text-lg font-medium text-gray-900">Nenhuma doação registrada ainda</h4>
-                    <p class="text-sm text-gray-500 mt-1 max-w-sm">Quando você realizar uma doação em um hemocentro parceiro, ela aparecerá aqui e você ganhará pontos!</p>
-                    <a href="{{ url('/') }}" class="mt-4 px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">
-                        Encontrar um Hemocentro
-                    </a>
-                </div>
+                <li class="py-6 text-cinza">
+                    Sua primeira doação aparece aqui depois que o hemocentro registrar a coleta.
+                </li>
             @endforelse
-        </div>
-    </div>
-
+        </ul>
+    </section>
 </div>
 @endsection

@@ -1,56 +1,57 @@
 @extends('layouts.painel')
 
-@section('titulo', 'Agendar Doação')
+@section('titulo', 'Agendar doação')
 
 @section('conteudo')
-<div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-    <div class="mb-6 border-b border-gray-100 pb-4">
-        <h2 class="text-2xl font-bold text-gray-800">Novo Agendamento</h2>
-        <p class="text-gray-500 mt-1">Selecione o hemocentro, a data e o horário da sua próxima doação.</p>
-    </div>
+<div class="max-w-2xl">
+    <h1 class="manchete">Agendar doação</h1>
+    <p class="mt-4 max-w-[44ch] text-[1.0625rem] leading-normal text-cinza">O hemocentro confirma o horário. Leve um documento oficial com foto no dia.</p>
 
-    @if ($errors->any())
-        <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    <x-erros class="mt-6" />
 
-    <form action="{{ route('agendamentos.store') }}" method="POST">
+    <form action="{{ route('agendamentos.store') }}" method="POST" class="mt-10">
         @csrf
-        <div class="space-y-6">
-            <!-- Seleção de Hemocentro -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Hemocentro Disponível</label>
-                <select name="fk_hemocentro_id" required class="block w-full border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                    <option value="" disabled selected>Selecione um local...</option>
-                    @foreach($hemocentros as $local)
-                        <option value="{{ $local->id }}">{{ $local->nome }} ({{ $local->endereco }})</option>
-                    @endforeach
-                </select>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Data -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Data da Doação</label>
-                    <input type="date" name="data" min="{{ date('Y-m-d') }}" required class="block w-full border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                </div>
-                
-                <!-- Hora -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Horário Preferencial</label>
-                    <input type="time" name="hora" required class="block w-full border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                </div>
+        {{-- Escolha do local no mesmo desenho da lista "Onde doar" da tela inicial --}}
+        @php($selecionado = old('fk_hemocentro_id', request('hemocentro')))
+        <fieldset>
+            <legend class="secao-cab w-full">
+                <h2>Onde você vai doar</h2>
+            </legend>
+            <ul class="linhas">
+                @forelse ($hemocentros as $local)
+                    <li>
+                        <label class="grid cursor-pointer grid-cols-[14px_1fr_auto] items-start gap-x-3.5 py-4 pl-1 pr-2 hover:bg-gaze has-[:checked]:bg-sangue-claro has-[:checked]:shadow-[inset_3px_0_0_#9B1027]">
+                            <x-application-logo class="mt-1 h-[15px] w-3 text-arterial" />
+                            <span>
+                                <span class="block font-bold leading-snug">{{ $local->nome }}</span>
+                                <span class="block text-sm leading-snug text-cinza">{{ $local->endereco }}</span>
+                            </span>
+                            <input type="radio" name="fk_hemocentro_id" value="{{ $local->id }}" required
+                                   @checked($selecionado == $local->id)
+                                   class="mt-1 border-borda text-sangue focus:ring-sangue">
+                        </label>
+                    </li>
+                @empty
+                    <li class="py-6 text-cinza">Nenhum hemocentro está recebendo agendamentos agora. Veja os pontos "Em breve" no mapa.</li>
+                @endforelse
+            </ul>
+        </fieldset>
+
+        <div class="mt-10 grid gap-5 sm:grid-cols-2">
+            <div>
+                <label for="data" class="rotulo">Dia</label>
+                <input id="data" type="date" name="data" value="{{ old('data') }}" min="{{ date('Y-m-d') }}" required class="campo">
+            </div>
+            <div>
+                <label for="hora" class="rotulo">Horário</label>
+                <input id="hora" type="time" name="hora" value="{{ old('hora') }}" required class="campo">
             </div>
         </div>
 
-        <div class="mt-8 flex justify-end gap-4">
-            <a href="{{ route('dashboard') }}" class="px-5 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">Cancelar</a>
-            <button type="submit" class="px-5 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition">Confirmar Agendamento</button>
+        <div class="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <button type="submit" class="botao-sangue">Agendar doação</button>
+            <a href="{{ route('dashboard') }}" class="botao-texto">Cancelar</a>
         </div>
     </form>
 </div>

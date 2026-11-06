@@ -53,7 +53,9 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
-
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('logout');
 });
+
+// O logout vale para os três tipos de conta (admin, doador e hemocentro)
+Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth:web,doador,hemocentro')
+    ->name('logout');

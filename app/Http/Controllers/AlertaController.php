@@ -3,76 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alerta;
-use App\Models\Hemocentro;
+use App\Notifications\AlertaUrgente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\Rule;
 
+// Mural de urgências: o hemocentro publica e encerra alertas (HU09) e os doadores próximos são avisados (HU10)
 class AlertaController extends Controller
 {
-    public function index()
-    {
-        $alertas = Alerta::with('hemocentro')
-            ->latest('data_publicacao')
-            ->paginate(10);
-
-        return view('alertas.index', compact('alertas'));
-    }
-
-    public function create()
-    {
-        $hemocentros = Hemocentro::where('status', 'ativo')->orderBy('nome')->get();
-
-        return view('alertas.create', compact('hemocentros'));
-    }
-
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'fk_hemocentro_id' => 'required|exists:hemocentros,id',
-            'tipo_sanguineo' => 'required|string|max:3',
-            'mensagem' => 'required|string|max:500',
-        ]);
+        /** @var \App\Models\Hemocentro $hemocentro */
+        $hemocentro = $request->user('hemocentro');
 
-        $validated['data_publicacao'] = now();
-
-        Alerta::create($validated);
-
-        return redirect()->route('alertas.index')->with('success', 'Alerta disparado!');
-    }
-
-    public function show(string $id)
-    {
-        $alerta = Alerta::with('hemocentro')->findOrFail($id);
-
-        return view('alertas.show', compact('alerta'));
-    }
-
-    public function edit(string $id)
-    {
-        $alerta = Alerta::findOrFail($id);
-        $hemocentros = Hemocentro::where('status', 'ativo')->get();
-
-        return view('alertas.edit', compact('alerta', 'hemocentros'));
-    }
-
-    public function update(Request $request, string $id)
-    {
-        $alerta = Alerta::findOrFail($id);
+        // Só instituições aprovadas publicam no mural
+        if ($hemocentro->status !== 'ativo') {
+            return redirect()->route('dashboard')->with('erro', 'Sua instituição precisa ser aprovada antes de publicar alertas.');
+        }
 
         $validated = $request->validate([
-            'tipo_sanguineo' => 'required|string|max:3',
+            'tipo_sanguineo' => ['required', Rule::in(Alerta::TIPOS_SANGUINEOS)],
             'mensagem' => 'required|string|max:500',
+            'data_expiracao' => 'required|date_format:Y-m-d|after_or_equal:today|before_or_equal:+30 days',
+        ], [
+            'tipo_sanguineo.required' => 'Escolha o tipo sanguíneo em falta.',
+            'tipo_sanguineo.in' => 'Escolha um tipo sanguíneo da lista.',
+            'data_expiracao.after_or_equal' => 'O alerta precisa valer pelo menos até hoje.',
+            'data_expiracao.before_or_equal' => 'Um alerta pode valer no máximo 30 dias. Publique outro depois, se precisar.',
         ]);
 
-        $alerta->update($validated);
+        $alerta = $hemocentro->alertas()->create([
+            'tipo_sanguineo' => $validated['tipo_sanguineo'],
+            'mensagem' => $validated['mensagem'],
+            'data_publicacao' => now(),
+            'data_expiracao' => Carbon::createFromFormat('Y-m-d', $validated['data_expiracao'])->endOfDay(),
+        ]);
 
-        return redirect()->route('alertas.index')->with('success', 'Alerta atualizado.');
+        $destinatarios = $alerta->destinatarios();
+        Notification::send($destinatarios, new AlertaUrgente($alerta));
+
+        $avisados = $destinatarios->count() === 1
+            ? '1 doador próximo foi avisado.'
+            : "{$destinatarios->count()} doadores próximos foram avisados.";
+
+        return redirect()->route('dashboard')->with('status', "Alerta de {$alerta->tipo_sanguineo} publicado no mural. {$avisados}");
     }
 
-    public function destroy(string $id)
+    public function encerrar(Request $request, string $id)
     {
-        $alerta = Alerta::findOrFail($id);
-        $alerta->delete();
+        // Só o hemocentro dono do alerta pode encerrá-lo
+        $alerta = Alerta::where('fk_hemocentro_id', $request->user('hemocentro')->id)
+            ->ativos()
+            ->findOrFail($id);
 
-        return redirect()->route('alertas.index')->with('success', 'Alerta removido.');
+        $alerta->update(['data_expiracao' => now()]);
+
+        return redirect()->route('dashboard')->with('status', "Alerta de {$alerta->tipo_sanguineo} encerrado e retirado do mural.");
     }
 }

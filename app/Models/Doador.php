@@ -4,7 +4,10 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable; 
 use Illuminate\Notifications\Notifiable; 
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use App\Notifications\AlertaUrgente;
 
 class Doador extends Authenticatable
 {
@@ -14,7 +17,7 @@ class Doador extends Authenticatable
 
     protected $fillable = [
         'nome', 'cpf', 'data_nascimento', 'sexo', 
-        'peso', 'tipo_sanguineo', 'email', 'senha'
+        'peso', 'tipo_sanguineo', 'latitude', 'longitude', 'email', 'senha'
     ];
 
     protected $hidden = [
@@ -38,9 +41,36 @@ class Doador extends Authenticatable
         return $this->hasMany(Agendamento::class, 'fk_doador_id');
     }
 
-    public function medalhas(): HasMany
+    // Alertas de urgência recebidos, ainda não vistos e ainda no mural (HU10).
+    // Confere o alerta no banco porque o hemocentro pode encerrá-lo antes da validade.
+    public function alertasNovos(): Collection
     {
-        return $this->hasMany(Medalha::class, 'fk_doador_id');
+        $notificacoes = $this->unreadNotifications->where('type', AlertaUrgente::class);
+
+        $alertasAtivos = Alerta::ativos()
+            ->whereIn('id', $notificacoes->pluck('data.alerta_id'))
+            ->pluck('id');
+
+        return $notificacoes
+            ->filter(fn ($notificacao) => $alertasAtivos->contains($notificacao->data['alerta_id']))
+            ->values();
+    }
+
+    public function temLocalizacao(): bool
+    {
+        return ! is_null($this->latitude) && ! is_null($this->longitude);
+    }
+
+    // Agendamentos ainda não finalizados (o doador só pode ter um por vez)
+    public function agendamentosEmAberto(): HasMany
+    {
+        return $this->agendamentos()->whereIn('status', ['pendente', 'confirmado']);
+    }
+
+    public function medalhas(): BelongsToMany
+    {
+        return $this->belongsToMany(Medalha::class, 'conquistas', 'fk_doador_id', 'fk_medalha_id')
+                    ->withTimestamps();
     }
 
     public function doacoes()
@@ -76,8 +106,20 @@ class Doador extends Authenticatable
         return $dataLiberacaoIntervalo;
     }
 
+    // Faixa etária legal para doação: 16 a 69 anos
+    public function getDentroDaFaixaEtariaAttribute()
+    {
+        $idade = \Carbon\Carbon::parse($this->data_nascimento)->age;
+
+        return $idade >= 16 && $idade <= 69;
+    }
+
     public function getPodeDoarAttribute()
     {
+        if (!$this->dentro_da_faixa_etaria) {
+            return false;
+        }
+
         if ($this->doacoes()->count() === 0) {
             return true;
         }

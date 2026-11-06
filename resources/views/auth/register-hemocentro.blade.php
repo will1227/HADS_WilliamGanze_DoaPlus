@@ -1,66 +1,50 @@
 <x-guest-layout>
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Cadastro de Instituição</h2>
-        <p class="text-sm text-gray-500 mt-1">Preencha os dados do Hemocentro. O status inicial será pendente de aprovação.</p>
-    </div>
+    <h1 class="manchete">Cadastro de instituição</h1>
+    <p class="mt-4 max-w-[38ch] text-[1.0625rem] leading-normal text-cinza">Depois do cadastro, a equipe DoaPlus confere os dados e libera a agenda da sua unidade.</p>
 
-    <!-- Exibição de erros corrigida -->
-    @if ($errors->any())
-        <div class="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    <x-erros class="mt-6" />
 
-    <form method="POST" action="{{ route('hemocentros.store') }}" id="formHemo">
+    <form method="POST" action="{{ route('hemocentros.store') }}" id="formHemo" class="mt-8 grid gap-5 sm:grid-cols-2">
         @csrf
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="md:col-span-2">
-                <label for="nome" class="block text-sm font-semibold text-gray-700">Nome da Instituição</label>
-                <input id="nome" type="text" name="nome" value="{{ old('nome') }}" required class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
-
-            <div>
-                <label for="cnpj" class="block text-sm font-semibold text-gray-700">CNPJ</label>
-                <input id="cnpj" type="text" name="cnpj" value="{{ old('cnpj') }}" required maxlength="18" placeholder="00.000.000/0000-00" oninput="maskCnpj(this)" class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
-
-            <div>
-                <label for="telefone" class="block text-sm font-semibold text-gray-700">Telefone</label>
-                <input id="telefone" type="text" name="telefone" value="{{ old('telefone') }}" required maxlength="15" placeholder="(00) 00000-0000" oninput="maskPhone(this)" class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
-
-            <div class="md:col-span-2">
-                <label for="endereco" class="block text-sm font-semibold text-gray-700">Endereço Completo</label>
-                <input id="endereco" type="text" name="endereco" value="{{ old('endereco') }}" required placeholder="Ex: Rua X, 123 - Centro, Cidade - RS" class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
-
-            <div class="md:col-span-2">
-                <label for="email" class="block text-sm font-semibold text-gray-700">E-mail Institucional</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
-
-            <div class="md:col-span-2">
-                <label for="senha" class="block text-sm font-semibold text-gray-700">Senha (mínimo 6 caracteres)</label>
-                <input id="senha" type="password" name="senha" required minlength="6" class="mt-1.5 block w-full border-gray-300 rounded-lg py-2.5 focus:ring-red-500 focus:border-red-500">
-            </div>
+        <div class="sm:col-span-2">
+            <label for="nome" class="rotulo">Nome da instituição</label>
+            <input id="nome" type="text" name="nome" value="{{ old('nome') }}" required autocomplete="organization" class="campo">
         </div>
 
-        <button type="submit" class="mt-6 w-full bg-red-600 text-white py-2.5 rounded-lg font-bold hover:bg-red-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-            Finalizar cadastro
-        </button>
+        <div>
+            <label for="cnpj" class="rotulo">CNPJ</label>
+            <input id="cnpj" type="text" name="cnpj" value="{{ old('cnpj') }}" required maxlength="18" inputmode="numeric" placeholder="00.000.000/0000-00" oninput="maskCnpj(this)" class="campo">
+        </div>
 
-        <div class="mt-5 text-center text-sm text-gray-600 border-t border-gray-100 pt-5">
-            Já tem conta?
-            <a href="{{ route('login') }}" class="text-red-600 font-semibold hover:underline">Entrar</a>
-            <span class="text-gray-300 mx-1">·</span>
-            <a href="{{ route('register') }}" class="text-gray-600 hover:text-gray-900 hover:underline">Trocar tipo de conta</a>
+        <div>
+            <label for="telefone" class="rotulo">Telefone (WhatsApp)</label>
+            <input id="telefone" type="tel" name="telefone" value="{{ old('telefone') }}" required maxlength="15" placeholder="(00) 00000-0000" oninput="maskPhone(this)" class="campo">
+        </div>
+
+        <div class="sm:col-span-2">
+            <label for="endereco" class="rotulo">Endereço completo</label>
+            <input id="endereco" type="text" name="endereco" value="{{ old('endereco') }}" required placeholder="Rua, número, bairro, cidade" autocomplete="street-address" class="campo">
+        </div>
+
+        <div class="sm:col-span-2">
+            <label for="email" class="rotulo">E-mail institucional</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autocomplete="email" class="campo">
+        </div>
+
+        <div class="sm:col-span-2">
+            <label for="senha" class="rotulo">Senha</label>
+            <input id="senha" type="password" name="senha" required minlength="6" autocomplete="new-password" aria-describedby="senhaAjuda" class="campo">
+            <p id="senhaAjuda" class="ajuda">Pelo menos 6 caracteres.</p>
+        </div>
+
+        <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-3 sm:col-span-2">
+            <button type="submit" class="botao-sangue">Cadastrar instituição</button>
+            <a href="{{ route('register') }}" class="botao-texto">Trocar tipo de conta</a>
         </div>
     </form>
+
+    <p class="mt-8 text-cinza">Já tem conta? <a href="{{ route('login') }}" class="text-tinta underline underline-offset-4 hover:text-sangue">Entrar</a></p>
 
     <script>
         function maskCnpj(input) {
@@ -79,12 +63,14 @@
             input.value = value;
         }
 
-        document.getElementById('formHemo').addEventListener('submit', function(e) {
-            let cnpjInput = document.getElementById('cnpj').value.replace(/\D/g, '');
-            if(cnpjInput.length !== 14) {
+        document.getElementById('formHemo').addEventListener('submit', function (e) {
+            const cnpj = document.getElementById('cnpj');
+            if (cnpj.value.replace(/\D/g, '').length !== 14) {
                 e.preventDefault();
-                alert('Por favor, informe um CNPJ válido completo.');
+                cnpj.setCustomValidity('Informe os 14 números do CNPJ.');
+                cnpj.reportValidity();
             }
         });
+        document.getElementById('cnpj').addEventListener('input', e => e.target.setCustomValidity(''));
     </script>
 </x-guest-layout>

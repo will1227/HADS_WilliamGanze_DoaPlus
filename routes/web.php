@@ -5,27 +5,47 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DoadorController;
 use App\Http\Controllers\HemocentroController;
 use App\Http\Controllers\AgendamentoController;
-use App\Http\Controllers\DoacaoController;
 use App\Http\Controllers\AlertaController;
-use App\Http\Controllers\MedalhaController;
 
 // 1. Rota da Tela Inicial (Mapa e FAQ)
 Route::get('/', function () {
-    // Busca todos os hemocentros que têm latitude e longitude preenchidas (ativos e provisórios)
-    $hemocentros = \App\Models\Hemocentro::whereNotNull('latitude')
+    // Busca os hemocentros ativos e provisórios que têm latitude e longitude preenchidas
+    // (contas ainda aguardando aprovação não aparecem).
+    // Só os campos públicos vão para o navegador (nada de e-mail ou CNPJ).
+    $hemocentros = \App\Models\Hemocentro::whereIn('status', ['ativo', 'provisorio'])
+                                         ->whereNotNull('latitude')
                                          ->whereNotNull('longitude')
-                                         ->get();
-                                         
-    return view('welcome', compact('hemocentros'));
+                                         ->orderBy('nome')
+                                         ->get()
+                                         ->map(fn ($h) => [
+                                             'id' => $h->id,
+                                             'nome' => $h->nome,
+                                             'endereco' => $h->endereco,
+                                             'telefone' => $h->telefone,
+                                             'latitude' => (float) $h->latitude,
+                                             'longitude' => (float) $h->longitude,
+                                             'agendavel' => $h->status === 'ativo',
+                                         ]);
+
+    // Mural de urgências (HU09): alertas no prazo de hemocentros ativos que estão no mapa
+    $urgencias = \App\Models\Alerta::ativos()
+        ->whereHas('hemocentro', fn ($q) => $q->where('status', 'ativo')->whereNotNull('latitude')->whereNotNull('longitude'))
+        ->with('hemocentro')
+        ->latest('data_publicacao')
+        ->get();
+
+    // Doador logado já vê o mural filtrado pelo próprio tipo sanguíneo
+    $tipoDoDoador = Auth::guard('doador')->user()?->tipo_sanguineo;
+
+    return view('welcome', compact('hemocentros', 'urgencias', 'tipoDoDoador'));
 })->name('home');
 
 // 2. Dashboard central para diferentes tipos de usuários (admin, doador, hemocentro)
 Route::get('/dashboard', function () {
     if (Auth::guard('web')->check()) {
-        // Busca hemocentros pendentes que solicitaram um local
+        // Busca todas as instituições aguardando aprovação (com ou sem pedido de um local provisório)
         $pedidos = \App\Models\Hemocentro::with('localReivindicado')
             ->where('status', 'pendente')
-            ->whereNotNull('fk_reivindicacao_id')
             ->get();
         return view('painel.admin', compact('pedidos'));
     }
@@ -37,19 +57,21 @@ Route::get('/dashboard', function () {
     
     if (Auth::guard('hemocentro')->check()) {
         $hemocentro = Auth::guard('hemocentro')->user();
-        $locaisProvisorios = \App\Models\Hemocentro::where('email', 'like', 'precadastro_%')->get();
+        $locaisProvisorios = \App\Models\Hemocentro::where('status', 'provisorio')->orderBy('nome')->get();
         
-        // Se a conta já for ativa, busca os agendamentos vinculados a ela
+        // Se a conta já for ativa, busca os agendamentos e os alertas no mural
         $agendamentos = collect();
+        $alertas = collect();
         if ($hemocentro->status === 'ativo') {
             $agendamentos = \App\Models\Agendamento::with('doador')
                 ->where('fk_hemocentro_id', $hemocentro->id)
                 ->whereIn('status', ['pendente', 'confirmado'])
                 ->orderBy('data_hora', 'asc')
                 ->get();
+            $alertas = $hemocentro->alertas()->ativos()->latest('data_publicacao')->get();
         }
 
-        return view('painel.hemocentro', compact('hemocentro', 'locaisProvisorios', 'agendamentos'));
+        return view('painel.hemocentro', compact('hemocentro', 'locaisProvisorios', 'agendamentos', 'alertas'));
     }
     
     return redirect('/');
@@ -63,6 +85,9 @@ Route::middleware('auth:doador')->group(function () {
     // Rotas de Agendamento do Doador
     Route::get('/agendar', [AgendamentoController::class, 'create'])->name('agendamentos.create');
     Route::post('/agendar', [AgendamentoController::class, 'store'])->name('agendamentos.store');
+
+    // Alertas de urgência recebidos (HU10)
+    Route::post('/alertas/lidos', [DoadorController::class, 'marcarAlertasLidos'])->name('alertas.lidos');
 });
 
 // 4. Rotas do Perfil e Reivindicação do Hemocentro
@@ -75,6 +100,10 @@ Route::middleware('auth:hemocentro')->group(function () {
 
     // Rotas de Gestão do Hemocentro
     Route::patch('/agendamentos/{id}/status', [AgendamentoController::class, 'atualizarStatus'])->name('agendamentos.status');
+
+    // Mural de urgências (HU09)
+    Route::post('/instituicao/alertas', [AlertaController::class, 'store'])->name('alertas.store');
+    Route::patch('/instituicao/alertas/{id}/encerrar', [AlertaController::class, 'encerrar'])->name('alertas.encerrar');
 });
 
 // 5. Rotas do Administrador (Pré-cadastro, Aprovação e Rejeição)
@@ -100,31 +129,44 @@ Route::middleware('auth:web')->group(function () {
             'email' => 'precadastro_' . time() . '@doaplus.com.br',
             'senha' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
             'cnpj' => mt_rand(10000000, 99999999) . '0001' . mt_rand(10, 99),
-            'status' => 'ativo', 
+            // Aparece no mapa como "Em breve", mas só recebe agendamentos depois que uma instituição o assumir
+            'status' => 'provisorio',
         ]);
 
         return back()->with('status', 'Hemocentro pré-cadastrado com sucesso! Ele já está visível no mapa inicial.');
     })->name('admin.precadastro');
 
-    // Rota para Aprovar a Reivindicação (Fusão)
+    // Rota para Aprovar a Instituição (com fusão, se ela reivindicou um ponto provisório)
     Route::post('/admin/hemocentros/aprovar/{id}', function ($id) {
-        $hemocentroReal = \App\Models\Hemocentro::findOrFail($id);
+        $hemocentroReal = \App\Models\Hemocentro::where('status', 'pendente')->findOrFail($id);
         $provisorio = $hemocentroReal->localReivindicado;
 
-        if ($provisorio) {
-            // 1. O perfil real herda as coordenadas do provisório
-            $hemocentroReal->latitude = $provisorio->latitude;
-            $hemocentroReal->longitude = $provisorio->longitude;
-            
-            // 2. Ativa a conta da instituição
+        \Illuminate\Support\Facades\DB::transaction(function () use ($hemocentroReal, $provisorio) {
+            if ($provisorio) {
+                // 1. O perfil real herda as coordenadas do provisório
+                $hemocentroReal->latitude = $provisorio->latitude;
+                $hemocentroReal->longitude = $provisorio->longitude;
+                $hemocentroReal->fk_reivindicacao_id = null;
+
+                // 2. Transfere o histórico do provisório (o delete em cascata apagaria esses registros)
+                $provisorio->agendamentos()->update(['fk_hemocentro_id' => $hemocentroReal->id]);
+                $provisorio->doacoes()->update(['fk_hemocentro_id' => $hemocentroReal->id]);
+                $provisorio->alertas()->update(['fk_hemocentro_id' => $hemocentroReal->id]);
+            }
+
+            // 3. Ativa a conta da instituição
             $hemocentroReal->status = 'ativo';
             $hemocentroReal->save();
 
-            // 3. Deleta o pino provisório
-            $provisorio->delete();
-        }
+            // 4. Deleta o pino provisório
+            $provisorio?->delete();
+        });
 
-        return back()->with('status', 'Instituição aprovada e unificada ao mapa com sucesso!');
+        $mensagem = $provisorio
+            ? 'Instituição aprovada e unificada ao mapa com sucesso!'
+            : 'Instituição aprovada com sucesso!';
+
+        return back()->with('status', $mensagem);
     })->name('admin.aprovar');
 
     // Rota para Rejeitar a Reivindicação
@@ -140,23 +182,18 @@ Route::middleware('auth:web')->group(function () {
     
 });
 
-// 6. Rotas de Recursos (CRUD Padrão do Sistema)
-Route::prefix('app')->group(function () {
-    Route::resource('doadores', DoadorController::class);
-    Route::resource('hemocentros', HemocentroController::class);
-    Route::resource('agendamentos', AgendamentoController::class);
-    Route::resource('doacoes', DoacaoController::class);
-    Route::resource('alertas', AlertaController::class);
-    Route::resource('medalhas', MedalhaController::class);
-});
+// 6. Cadastro público de doadores e instituições (só para quem ainda não está logado)
+Route::middleware('guest:web,doador,hemocentro')->group(function () {
+    Route::get('/register/doador', function () {
+        return view('auth.register-doador');
+    });
 
-// 7. Rotas de Registro Personalizadas (Frontend)
-Route::get('/register/doador', function () {
-    return view('auth.register-doador');
-});
+    Route::get('/register/hemocentro', function () {
+        return view('auth.register-hemocentro');
+    });
 
-Route::get('/register/hemocentro', function () {
-    return view('auth.register-hemocentro');
+    Route::post('/app/doadores', [DoadorController::class, 'store'])->name('doadores.store');
+    Route::post('/app/hemocentros', [HemocentroController::class, 'store'])->name('hemocentros.store');
 });
 
 // 8. Arquivo de Autenticação base do Laravel Breeze

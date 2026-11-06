@@ -6,6 +6,8 @@ use App\Models\Agendamento;
 use App\Models\Doador;
 use App\Models\Hemocentro;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AgendamentoController extends Controller
 {
@@ -20,8 +22,12 @@ class AgendamentoController extends Controller
         return view('agendamentos.index', compact('agendamentos'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        if ($request->user('doador')->agendamentosEmAberto()->exists()) {
+            return redirect()->route('dashboard')->with('erro', 'Você já possui um agendamento em aberto.');
+        }
+
         $doadores = Doador::orderBy('nome')->get();
         $hemocentros = Hemocentro::where('status', 'ativo')->orderBy('nome')->get();
 
@@ -31,7 +37,8 @@ class AgendamentoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'fk_hemocentro_id' => 'required|exists:hemocentros,id',
+            // Só hemocentros ativos recebem agendamentos (provisórios e pendentes não)
+            'fk_hemocentro_id' => ['required', Rule::exists('hemocentros', 'id')->where('status', 'ativo')],
             'data' => 'required|date_format:Y-m-d|after_or_equal:today',
             'hora' => 'required|date_format:H:i',
         ]);
@@ -39,7 +46,7 @@ class AgendamentoController extends Controller
         $doador = $request->user('doador');
 
         if (!$doador->pode_doar) {
-            return redirect()->route('dashboard')->with('erro', 'Você ainda está no intervalo de descanso e não pode agendar.');
+            return redirect()->route('dashboard')->with('erro', 'Você ainda não está apto a doar e não pode agendar.');
         }
 
         $dataHora = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $validated['data'].' '.$validated['hora']);
@@ -48,12 +55,27 @@ class AgendamentoController extends Controller
             return back()->withInput()->withErrors(['hora' => 'Escolha um horário futuro.']);
         }
 
-        Agendamento::create([
-            'fk_doador_id' => $doador->id,
-            'fk_hemocentro_id' => $validated['fk_hemocentro_id'],
-            'data_hora' => $dataHora,
-            'status' => 'pendente',
-        ]);
+        // Trava a linha do doador para que dois envios simultâneos não criem dois agendamentos
+        $criado = DB::transaction(function () use ($doador, $validated, $dataHora) {
+            Doador::whereKey($doador->id)->lockForUpdate()->first();
+
+            if ($doador->agendamentosEmAberto()->exists()) {
+                return false;
+            }
+
+            Agendamento::create([
+                'fk_doador_id' => $doador->id,
+                'fk_hemocentro_id' => $validated['fk_hemocentro_id'],
+                'data_hora' => $dataHora,
+                'status' => 'pendente',
+            ]);
+
+            return true;
+        });
+
+        if (!$criado) {
+            return redirect()->route('dashboard')->with('erro', 'Você já possui um agendamento em aberto.');
+        }
 
         return redirect()->route('dashboard')->with('status', 'Agendamento marcado com sucesso!');
     }
@@ -103,7 +125,12 @@ class AgendamentoController extends Controller
             return redirect()->route('dashboard')->with('status', 'Este agendamento já foi finalizado.');
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($agendamento, $validated) {
+        // A coleta só pode ser registrada no dia agendado ou depois (senão a aptidão seria calculada com data futura)
+        if ($validated['status'] === 'concluido' && $agendamento->data_hora->isAfter(today()->endOfDay())) {
+            return redirect()->route('dashboard')->with('erro', 'A doação só pode ser registrada a partir da data agendada.');
+        }
+
+        DB::transaction(function () use ($agendamento, $validated) {
             $agendamento->update(['status' => $validated['status']]);
 
             // Doação concluída entra no histórico do doador (e reinicia o intervalo de descanso)
