@@ -44,7 +44,7 @@
             <label for="tipo_sanguineo" class="rotulo">Tipo sanguíneo</label>
             <select id="tipo_sanguineo" name="tipo_sanguineo" required class="campo">
                 <option value="">Selecione</option>
-                @foreach (['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $tipo)
+                @foreach (\App\Models\Alerta::TIPOS_SANGUINEOS as $tipo)
                     <option value="{{ $tipo }}" @selected(old('tipo_sanguineo') === $tipo)>{{ $tipo }}</option>
                 @endforeach
             </select>
@@ -60,6 +60,16 @@
             <input id="senha" type="password" name="senha" required minlength="6" autocomplete="new-password" aria-describedby="senhaAjuda" class="campo">
             <p id="senhaAjuda" class="ajuda">Pelo menos 6 caracteres.</p>
         </div>
+
+        {{-- Consentimento explícito (LGPD, RNF06): sem marcar, a conta não é criada --}}
+        <label class="flex items-start gap-3 sm:col-span-2">
+            <input type="checkbox" name="consentimento" value="1" required @checked(old('consentimento'))
+                   class="mt-1 rounded border-borda text-sangue focus:ring-sangue">
+            <span>
+                Li e aceito a <a href="{{ route('privacidade') }}" target="_blank" class="underline underline-offset-4 hover:text-sangue">Política de Privacidade</a>.
+                Autorizo o DoaPlus a guardar meus dados, inclusive o tipo sanguíneo e o histórico de doações, para agendar doações e me avisar de urgências.
+            </span>
+        </label>
 
         <div class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-3 sm:col-span-2">
             <button type="submit" class="botao-sangue">Criar conta de doador</button>

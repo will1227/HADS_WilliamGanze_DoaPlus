@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use Database\Factories\HemocentroFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable; // Importação alterada
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Hemocentro extends Authenticatable
 {
-    use Notifiable;
+    /** @use HasFactory<HemocentroFactory> */
+    use HasFactory, Notifiable;
 
     protected $table = 'hemocentros';
 
@@ -47,6 +50,13 @@ class Hemocentro extends Authenticatable
     public function alertas(): HasMany
     {
         return $this->hasMany(Alerta::class, 'fk_hemocentro_id');
+    }
+
+    // Conta recém-criada ('incompleto') ou com pedido recusado pelo admin ('rejeitado'):
+    // ainda precisa dizer onde fica a unidade antes de entrar na fila de aprovação
+    public function precisaEscolherLocal(): bool
+    {
+        return in_array($this->status, ['incompleto', 'rejeitado']);
     }
 
     public function localReivindicado()

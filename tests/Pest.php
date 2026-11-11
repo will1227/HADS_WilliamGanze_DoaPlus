@@ -16,7 +16,7 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature', 'Browser');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,4 +47,14 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+// Testes E2E (tests/Browser): entra pela tela de login, como um usuário de verdade
+function entrar($pagina, string $identificacao, string $senha = 'password')
+{
+    return $pagina->navigate('/login')
+        ->fill('identificacao', $identificacao)
+        ->fill('password', $senha)
+        // seletor do botão: o texto "Entrar" também é o título da página
+        ->press('main button[type=submit]');
 }

@@ -6,7 +6,9 @@ test('registration screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('new users can register', function () {
+// Auditoria de segurança (semana 10): este teste do Breeze exigia que um visitante criasse conta
+// na tabela users, que no DoaPlus é a do administrador. Agora garante o contrário.
+test('visitante não consegue criar conta de administrador', function () {
     $response = $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
@@ -14,6 +16,7 @@ test('new users can register', function () {
         'password_confirmation' => 'password',
     ]);
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertMethodNotAllowed();
+    $this->assertGuest();
+    $this->assertDatabaseEmpty('users');
 });

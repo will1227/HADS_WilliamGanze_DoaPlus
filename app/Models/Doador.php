@@ -2,22 +2,30 @@
 
 namespace App\Models;
 
+use Database\Factories\DoadorFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable; 
 use Illuminate\Notifications\Notifiable; 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use App\Notifications\AlertaUrgente;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class Doador extends Authenticatable
 {
-    use Notifiable;
+    // HasPushSubscriptions: inscrições de notificação push, uma por navegador/aparelho (RNF02)
+    /** @use HasFactory<DoadorFactory> */
+    use HasFactory, HasPushSubscriptions, Notifiable;
+
+    // Pontos ganhos a cada doação validada pelo hemocentro (HU11)
+    public const PONTOS_POR_DOACAO = 100;
 
     protected $table = 'doadores';
 
     protected $fillable = [
         'nome', 'cpf', 'data_nascimento', 'sexo', 
-        'peso', 'tipo_sanguineo', 'latitude', 'longitude', 'email', 'senha'
+        'peso', 'tipo_sanguineo', 'latitude', 'longitude', 'email', 'senha', 'consentimento_em'
     ];
 
     protected $hidden = [
@@ -33,6 +41,8 @@ class Doador extends Authenticatable
     {
         return [
             'senha' => 'hashed',
+            'pontos' => 'integer',
+            'consentimento_em' => 'datetime',
         ];
     }
 
@@ -76,6 +86,17 @@ class Doador extends Authenticatable
     public function doacoes()
     {
         return $this->hasMany(Doacao::class, 'fk_doador_id');
+    }
+
+    // Soma os pontos de uma doação validada e libera as medalhas alcançadas (HU11 e HU12).
+    // Chamado pelo model Doacao; increment() soma direto no banco, sem ler o saldo antes.
+    public function receberPontosDaDoacao(): void
+    {
+        $this->increment('pontos', self::PONTOS_POR_DOACAO);
+
+        $this->medalhas()->syncWithoutDetaching(
+            Medalha::where('pontos_necessarios', '<=', $this->pontos)->pluck('id')
+        );
     }
 
     public function getDataProximaDoacaoAttribute()

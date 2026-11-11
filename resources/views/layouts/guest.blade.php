@@ -7,6 +7,7 @@
 
         <title>DoaPlus - Doe sangue perto de você</title>
         <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+        <x-pwa />
 
         <!-- Mesmas fontes da tela do mapa -->
         <link rel="preconnect" href="https://fonts.bunny.net">

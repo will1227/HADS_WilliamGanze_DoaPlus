@@ -8,6 +8,8 @@
     $agendamento = $doador->agendamentosEmAberto()->with('hemocentro')->orderBy('data_hora')->first();
     $proximaDoacao = \Carbon\Carbon::parse($doador->data_proxima_doacao)->locale('pt_BR');
     $diasRestantes = (int) round(today()->diffInDays($proximaDoacao->copy()->startOfDay()));
+    $medalhas = \App\Models\Medalha::orderBy('pontos_necessarios')->get();
+    $conquistas = $doador->medalhas->keyBy('id');
 @endphp
 
 <div class="max-w-3xl">
@@ -31,10 +33,15 @@
                         <div>
                             <p class="font-bold leading-snug">{{ $notificacao->data['hemocentro'] }}</p>
                             <p class="mt-1 leading-snug">{{ $notificacao->data['mensagem'] }}</p>
-                            <p class="mt-1 text-sm text-cinza">Vale até {{ \Illuminate\Support\Carbon::parse($notificacao->data['data_expiracao'])->format('d/m') }}.</p>
-                            @if ($doador->pode_doar && ! $agendamento)
-                                <a href="{{ route('agendamentos.create', ['hemocentro' => $notificacao->data['hemocentro_id']]) }}" class="botao-sangue botao-pequeno mt-3">Agendar neste hemocentro</a>
-                            @endif
+                            @php($validade = \Illuminate\Support\Carbon::parse($notificacao->data['data_expiracao'])->format('d/m'))
+                            <p class="mt-1 text-sm text-cinza">Vale até {{ $validade }}.</p>
+                            <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                                @if ($doador->pode_doar && ! $agendamento)
+                                    <a href="{{ route('agendamentos.create', ['hemocentro' => $notificacao->data['hemocentro_id']]) }}" class="botao-sangue botao-pequeno">Agendar neste hemocentro</a>
+                                @endif
+                                <x-compartilhar-whatsapp class="botao-texto text-sm"
+                                    :texto="'O '.$notificacao->data['hemocentro'].' precisa de sangue '.$notificacao->data['tipo_sanguineo'].' até '.$validade.'. Se você puder, doe:'" />
+                            </div>
                         </div>
                     </li>
                 @endforeach
@@ -85,7 +92,11 @@
     @endunless
 
     {{-- Números do doador --}}
-    <dl class="mt-12 grid grid-cols-2 gap-x-6 border-b border-linha sm:grid-cols-4">
+    <dl class="mt-12 grid grid-cols-2 gap-x-6 border-b border-linha sm:grid-cols-3 lg:grid-cols-5">
+        <div class="border-t border-linha py-5">
+            <dt class="text-sm text-cinza">Pontos</dt>
+            <dd class="mt-1 font-titulo text-3xl font-bold tabular-nums text-sangue">{{ $doador->pontos }}</dd>
+        </div>
         <div class="border-t border-linha py-5">
             <dt class="text-sm text-cinza">Doações</dt>
             <dd class="mt-1 font-titulo text-3xl font-bold tabular-nums">{{ $doacoes->count() }}</dd>
@@ -103,6 +114,44 @@
             <dd class="mt-2"><span class="selo {{ $doador->patente['bg'] }} {{ $doador->patente['text'] }} font-bold">{{ $doador->patente['nome'] }}</span></dd>
         </div>
     </dl>
+
+    {{-- Vitrine de medalhas (HU12): conquistadas aparecem coloridas, as outras em cinza --}}
+    <section class="mt-12" aria-labelledby="medalhasTitulo">
+        <div class="secao-cab">
+            <h2 id="medalhasTitulo">Suas medalhas</h2>
+            <span>{{ $conquistas->count() }} de {{ $medalhas->count() }}</span>
+        </div>
+
+        <ul class="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-2">
+            @foreach ($medalhas as $medalha)
+                @php($conquista = $conquistas->get($medalha->id))
+                <li @class([
+                    'grid grid-cols-[3rem_1fr] items-start gap-x-4 rounded-lg px-4 py-4',
+                    'bg-sangue-claro' => $conquista,
+                    'bg-gaze' => ! $conquista,
+                ])>
+                    <span @class([
+                        'flex h-12 w-12 items-center justify-center rounded-full',
+                        'bg-arterial text-white' => $conquista,
+                        'border border-dashed border-borda text-borda' => ! $conquista,
+                    ])>
+                        <x-application-logo class="h-6 w-5" />
+                    </span>
+                    <div>
+                        <p @class(['font-bold leading-snug', 'text-sangue-escuro' => $conquista, 'text-cinza' => ! $conquista])>{{ $medalha->nome }}</p>
+                        <p class="mt-0.5 text-sm leading-snug text-cinza">{{ $medalha->descricao }}</p>
+                        @if ($conquista)
+                            <p class="mt-1 text-sm text-cinza">Conquistada em {{ $conquista->pivot->created_at->format('d/m/Y') }}</p>
+                            <x-compartilhar-whatsapp class="botao-texto text-sm"
+                                :texto="'Conquistei a medalha “'.$medalha->nome.'” no DoaPlus doando sangue! Uma doação pode ajudar até 4 pessoas. Venha doar também:'" />
+                        @else
+                            <p class="mt-1 text-sm text-cinza">Bloqueada · faltam {{ $medalha->pontos_necessarios - $doador->pontos }} pontos</p>
+                        @endif
+                    </div>
+                </li>
+            @endforeach
+        </ul>
+    </section>
 
     {{-- Histórico, no mesmo desenho da lista "Onde doar" --}}
     <section class="mt-12">

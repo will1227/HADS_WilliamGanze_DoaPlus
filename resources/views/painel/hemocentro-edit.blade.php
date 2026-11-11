@@ -65,7 +65,7 @@
             </div>
             <div>
                 <label for="situacao" class="rotulo">Situação da conta</label>
-                <input id="situacao" type="text" value="{{ $hemocentro->status === 'ativo' ? 'Aprovada' : 'Aguardando aprovação' }}" disabled class="campo">
+                <input id="situacao" type="text" value="{{ match ($hemocentro->status) { 'ativo' => 'Aprovada', 'pendente' => 'Aguardando aprovação', default => 'Falta informar o local da unidade' } }}" disabled class="campo">
             </div>
             <p class="ajuda mt-0 sm:col-span-2">Para corrigir o CNPJ, fale com a equipe DoaPlus.</p>
         </fieldset>

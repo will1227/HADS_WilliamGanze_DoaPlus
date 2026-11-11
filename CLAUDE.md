@@ -48,7 +48,9 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 
 # Registro de alterações para estudo (regra do projeto)
 
-Toda alteração feita no código deve ser explicada em `ALTERACOES.txt`, na raiz do projeto (arquivo fora do Git, listado no `.gitignore`). O autor usa esse arquivo para estudar o código antes de apresentar o TCC.
+Toda alteração feita no código deve ser explicada em `estudo-tcc/ALTERACOES.txt`. O autor usa esse arquivo para estudar o código antes de apresentar o TCC.
+
+Todos os arquivos de ajuda/estudo (registro de alterações, relatório de testes `testes.txt`, logins de demonstração `logins.txt` e qualquer outro novo do mesmo tipo) ficam na pasta `estudo-tcc/`, na raiz do projeto. A pasta inteira está no `.gitignore`: nunca crie esses arquivos fora dela.
 
 - Ao terminar cada tarefa, acrescente ao final do arquivo uma seção com a data (`DD/MM/AAAA`) e a tarefa. Não reescreva nem apague seções antigas; se uma mudança nova altera algo já explicado, diga isso na seção nova.
 - Para cada parte, explique em português simples: o problema ou requisito (citando HU/RF do DVP quando houver), o que foi feito, quais arquivos e métodos mudaram, por que essa solução foi escolhida e como foi testada.

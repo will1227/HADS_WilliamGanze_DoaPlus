@@ -28,10 +28,9 @@ class AgendamentoController extends Controller
             return redirect()->route('dashboard')->with('erro', 'Você já possui um agendamento em aberto.');
         }
 
-        $doadores = Doador::orderBy('nome')->get();
         $hemocentros = Hemocentro::where('status', 'ativo')->orderBy('nome')->get();
 
-        return view('agendamentos.create', compact('doadores', 'hemocentros'));
+        return view('agendamentos.create', compact('hemocentros'));
     }
 
     public function store(Request $request)

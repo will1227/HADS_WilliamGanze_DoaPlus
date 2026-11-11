@@ -4,11 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\Hemocentro;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class HemocentroSeeder extends Seeder
 {
+    // Hemocentros do RS como pré-cadastro (sem dono): aparecem no mapa como "Em breve"
+    // e ficam disponíveis para uma instituição reivindicar. Mesmos dados gerados pela
+    // rota admin.precadastro.
     public function run(): void
     {
         $hemocentros = [
@@ -69,16 +71,12 @@ class HemocentroSeeder extends Seeder
         ];
 
         foreach ($hemocentros as $key => $data) {
-            Hemocentro::create([
-                'nome' => $data['nome'],
-                'endereco' => $data['endereco'],
-                'latitude' => $data['latitude'],
-                'longitude' => $data['longitude'],
-                'email' => 'contato' . $key . '@hemocentro.rs.gov.br',
-                'senha' => Hash::make('senha123'), // Senha padrão para todos
-                'cnpj' => mt_rand(10000000, 99999999) . '0001' . mt_rand(10, 99), // CNPJ aleatório fictício
-                'telefone' => '(51) 3' . mt_rand(100, 999) . '-' . mt_rand(1000, 9999), // Telefone aleatório
-                'status' => 'ativo', // Importante para aparecer no mapa
+            Hemocentro::create($data + [
+                'email' => 'precadastro_' . $key . '@doaplus.com.br',
+                'senha' => Str::random(16), // ninguém entra com esta conta; o cast 'hashed' criptografa
+                'cnpj' => mt_rand(10000000, 99999999) . '0001' . mt_rand(10, 99), // CNPJ fictício
+                'telefone' => '513' . str_pad((string) $key, 7, '0', STR_PAD_LEFT), // fictício e único
+                'status' => 'provisorio',
             ]);
         }
     }

@@ -57,6 +57,18 @@
                 <button type="button" id="btnRemoverLocalizacao" @class(['botao-texto text-sm', 'hidden' => ! $doador->temLocalizacao()])>Remover localização</button>
             </div>
             <x-input-error :messages="$errors->get('latitude')" class="mt-2" />
+
+            {{-- Notificação push (RNF02): vale para este navegador e é gravada na hora, sem "Salvar dados" --}}
+            @if (config('webpush.vapid.public_key'))
+                <div id="push" data-chave="{{ config('webpush.vapid.public_key') }}" class="mt-6">
+                    <p class="rotulo">Avisos neste aparelho</p>
+                    <p id="pushStatus" class="ajuda max-w-[60ch]" aria-live="polite">Verificando se este navegador recebe notificações...</p>
+                    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                        <button type="button" id="btnAtivarPush" class="botao-contorno botao-pequeno hidden">Receber alertas como notificação</button>
+                        <button type="button" id="btnDesativarPush" class="botao-texto hidden text-sm">Parar de receber neste aparelho</button>
+                    </div>
+                </div>
+            @endif
         </fieldset>
 
         {{-- Dados de registro: não podem ser alterados pelo doador --}}
@@ -82,6 +94,24 @@
             <a href="{{ route('dashboard') }}" class="botao-texto">Cancelar</a>
         </div>
     </form>
+
+    {{-- LGPD (RNF06): exclusão da conta. Formulário separado porque um form não pode ficar dentro de outro --}}
+    <section id="excluir" class="mt-16 border-t border-linha pt-6" aria-labelledby="excluirTitulo">
+        <h2 id="excluirTitulo" class="font-titulo text-[1.0625rem] font-bold">Excluir minha conta</h2>
+        <p class="mt-1 max-w-[60ch] text-cinza">
+            Apaga para sempre seus dados, seu histórico de doações, agendamentos, medalhas e avisos.
+            Não dá para desfazer. Os registros oficiais das doações continuam com cada hemocentro.
+        </p>
+        <form method="POST" action="{{ route('doador.excluir') }}" class="mt-4 max-w-sm"
+              onsubmit="return confirm('Excluir sua conta e todos os seus dados? Não dá para desfazer.')">
+            @csrf
+            @method('DELETE')
+            <label for="senha_atual" class="rotulo">Digite sua senha para confirmar</label>
+            <input id="senha_atual" type="password" name="senha_atual" required autocomplete="current-password" class="campo">
+            <x-input-error :messages="$errors->get('senha_atual')" class="mt-2" />
+            <button type="submit" class="botao mt-4 border border-sangue bg-white text-sangue hover:bg-sangue-claro">Excluir minha conta</button>
+        </form>
+    </section>
 </div>
 
 <script>
@@ -116,6 +146,80 @@
             remover.classList.add('hidden');
             status.textContent = 'Localização removida. Clique em "Salvar dados" para confirmar.';
         });
+    })();
+
+    // Liga/desliga a notificação push deste navegador (RNF02)
+    (function () {
+        const area = document.getElementById('push');
+        if (!area) return;
+
+        const status = document.getElementById('pushStatus');
+        const ativar = document.getElementById('btnAtivarPush');
+        const desativar = document.getElementById('btnDesativarPush');
+        const suportado = 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
+
+        function enviar(metodo, corpo) {
+            return fetch('{{ route('push.inscrever') }}', {
+                method: metodo,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify(corpo),
+            });
+        }
+
+        function mostrar(texto, botao) {
+            status.textContent = texto;
+            ativar.classList.toggle('hidden', botao !== ativar);
+            desativar.classList.toggle('hidden', botao !== desativar);
+        }
+
+        async function atualizar() {
+            if (!suportado) {
+                return mostrar('Este navegador não recebe notificações. No iPhone, primeiro adicione o DoaPlus à Tela de Início (Compartilhar > Adicionar à Tela de Início).', null);
+            }
+            if (Notification.permission === 'denied') {
+                return mostrar('As notificações do DoaPlus estão bloqueadas. Libere nas configurações do navegador.', null);
+            }
+            const registro = await navigator.serviceWorker.ready;
+            const inscricao = await registro.pushManager.getSubscription();
+            if (inscricao) {
+                // Reenvia para o servidor: se outra conta usou este aparelho antes, a inscrição passa para você
+                await enviar('POST', inscricao.toJSON());
+                return mostrar('Ativado. Os alertas de urgência chegam como notificação, mesmo com o DoaPlus fechado.', desativar);
+            }
+            mostrar('Desativado. Os alertas aparecem só no seu painel.', ativar);
+        }
+
+        // Se der erro, o mesmo botão continua na tela para tentar de novo
+        const falhou = (botao) => () => mostrar('Não foi possível mudar as notificações agora. Confira a internet e tente de novo.', botao);
+
+        ativar.addEventListener('click', () => ligar().catch(falhou(ativar)));
+        desativar.addEventListener('click', () => desligar().catch(falhou(desativar)));
+
+        async function ligar() {
+            if (await Notification.requestPermission() !== 'granted') {
+                return atualizar();
+            }
+            const registro = await navigator.serviceWorker.ready;
+            const inscricao = await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: area.dataset.chave });
+            const resposta = await enviar('POST', inscricao.toJSON());
+            if (!resposta.ok) {
+                await inscricao.unsubscribe();
+                return mostrar('Não foi possível ativar agora. Tente de novo em alguns minutos.', ativar);
+            }
+            atualizar();
+        }
+
+        async function desligar() {
+            const registro = await navigator.serviceWorker.ready;
+            const inscricao = await registro.pushManager.getSubscription();
+            if (inscricao) {
+                await enviar('DELETE', { endpoint: inscricao.endpoint });
+                await inscricao.unsubscribe();
+            }
+            atualizar();
+        }
+
+        atualizar().catch(() => mostrar('Não foi possível verificar as notificações neste navegador.', null));
     })();
 </script>
 @endsection

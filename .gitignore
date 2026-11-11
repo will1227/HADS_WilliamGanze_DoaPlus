@@ -27,4 +27,7 @@ Homestead.yaml
 Thumbs.db
 
 # Anotações de estudo das alterações (não versionar)
-/ALTERACOES.txt
+/estudo-tcc/
+
+# Capturas que o Pest gera quando um teste E2E falha
+/tests/Browser/Screenshots

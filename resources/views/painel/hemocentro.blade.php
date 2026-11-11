@@ -5,52 +5,90 @@
 @section('conteudo')
 <p class="text-cinza">{{ $hemocentro->nome }}</p>
 
-@if ($hemocentro->status === 'pendente')
+@if ($hemocentro->precisaEscolherLocal())
+    <section class="max-w-3xl">
+        <h1 class="manchete mt-2">Encontre sua unidade no mapa.</h1>
+        <p class="mt-4 max-w-[46ch] text-[1.0625rem] leading-normal text-cinza">
+            Se ela já foi pré-cadastrada pela equipe DoaPlus, assuma o ponto abaixo. Se não, informe a localização.
+            Depois disso o pedido vai para a aprovação e, quando aprovado, a agenda é liberada.
+        </p>
 
-    @if ($hemocentro->fk_reivindicacao_id)
-        <section class="max-w-3xl">
-            <h1 class="manchete mt-2">Sua conta está em análise.</h1>
-            <p class="mt-4 max-w-[46ch] text-[1.0625rem] leading-normal text-cinza">
-                Você pediu para assumir o ponto <strong class="text-tinta">{{ $hemocentro->localReivindicado->nome ?? 'no mapa' }}</strong>.
-                A equipe DoaPlus confere o CNPJ e, quando aprovar, a agenda da sua unidade é liberada.
+        @if ($hemocentro->status === 'rejeitado')
+            <p class="aviso-erro mt-6">
+                A equipe DoaPlus recusou o seu último pedido. Confira os dados da instituição e escolha o local novamente.
             </p>
-        </section>
-    @else
-        <section class="max-w-3xl">
-            <h1 class="manchete mt-2">Encontre sua unidade no mapa.</h1>
-            <p class="mt-4 max-w-[46ch] text-[1.0625rem] leading-normal text-cinza">
-                Se ela já foi pré-cadastrada pela equipe DoaPlus, assuma o ponto abaixo. A agenda é liberada depois da aprovação.
-            </p>
+        @endif
 
-            <div class="secao-cab mt-12">
-                <h2>Pontos pré-cadastrados</h2>
-                <span>{{ $locaisProvisorios->count() }} {{ $locaisProvisorios->count() === 1 ? 'ponto' : 'pontos' }}</span>
+        <div class="secao-cab mt-12">
+            <h2>Pontos pré-cadastrados</h2>
+            <span>{{ $locaisProvisorios->count() }} {{ $locaisProvisorios->count() === 1 ? 'ponto' : 'pontos' }}</span>
+        </div>
+        <ul class="linhas">
+            @forelse ($locaisProvisorios as $local)
+                <li class="grid grid-cols-[14px_1fr] gap-x-3.5 gap-y-3 py-4 sm:grid-cols-[14px_1fr_auto] sm:items-center">
+                    <x-application-logo class="mt-1 h-[15px] w-3 self-start text-plasma" />
+                    <div>
+                        <p class="font-bold leading-snug">{{ $local->nome }}</p>
+                        <p class="text-sm leading-snug text-cinza">{{ $local->endereco }}</p>
+                    </div>
+                    <form action="{{ route('hemocentro.reivindicar') }}" method="POST" class="col-start-2 sm:col-start-3">
+                        @csrf
+                        <input type="hidden" name="fk_reivindicacao_id" value="{{ $local->id }}">
+                        <button type="submit" class="botao-contorno botao-pequeno">Assumir este ponto</button>
+                    </form>
+                </li>
+            @empty
+                <li class="py-6 text-cinza">Nenhum ponto pré-cadastrado no momento.</li>
+            @endforelse
+        </ul>
+
+        <div class="secao-cab mt-12">
+            <h2>Minha unidade não está na lista</h2>
+        </div>
+        <p class="mt-4 max-w-[60ch] text-cinza">
+            Informe onde fica <strong class="text-tinta">{{ $hemocentro->endereco }}</strong>.
+            Para corrigir o endereço, use <a href="{{ route('hemocentro.perfil') }}" class="text-tinta underline underline-offset-4 hover:text-sangue">Dados da instituição</a>.
+        </p>
+
+        <form method="POST" action="{{ route('hemocentro.localizacao') }}" class="mt-6 grid max-w-md grid-cols-2 gap-5">
+            @csrf
+
+            <div>
+                <label for="latitude" class="rotulo">Latitude</label>
+                <input id="latitude" type="text" name="latitude" value="{{ old('latitude', $hemocentro->latitude) }}" required inputmode="decimal" placeholder="-28.2612" class="campo">
             </div>
-            <ul class="linhas">
-                @forelse ($locaisProvisorios as $local)
-                    <li class="grid grid-cols-[14px_1fr] gap-x-3.5 gap-y-3 py-4 sm:grid-cols-[14px_1fr_auto] sm:items-center">
-                        <x-application-logo class="mt-1 h-[15px] w-3 self-start text-plasma" />
-                        <div>
-                            <p class="font-bold leading-snug">{{ $local->nome }}</p>
-                            <p class="text-sm leading-snug text-cinza">{{ $local->endereco }}</p>
-                        </div>
-                        <form action="{{ route('hemocentro.reivindicar') }}" method="POST" class="col-start-2 sm:col-start-3">
-                            @csrf
-                            <input type="hidden" name="fk_reivindicacao_id" value="{{ $local->id }}">
-                            <button type="submit" class="botao-contorno botao-pequeno">Assumir este ponto</button>
-                        </form>
-                    </li>
-                @empty
-                    <li class="py-6 text-cinza">Nenhum ponto pré-cadastrado no momento.</li>
-                @endforelse
-            </ul>
+            <div>
+                <label for="longitude" class="rotulo">Longitude</label>
+                <input id="longitude" type="text" name="longitude" value="{{ old('longitude', $hemocentro->longitude) }}" required inputmode="decimal" placeholder="-52.4083" class="campo">
+            </div>
+            <p class="ajuda col-span-2 -mt-2">No Google Maps, clique com o botão direito no local para copiar as coordenadas.</p>
 
-            <p class="mt-6 max-w-[60ch] text-cinza">
-                Sua unidade não está na lista? Ela já está na fila de aprovação como um local novo.
-                Informe a localização em <a href="{{ route('hemocentro.perfil') }}" class="text-tinta underline underline-offset-4 hover:text-sangue">Dados da instituição</a> para ela aparecer no mapa depois da aprovação.
-            </p>
-        </section>
-    @endif
+            <x-erros class="col-span-2" />
+
+            <div class="col-span-2 mt-1">
+                <button type="submit" class="botao-sangue">Enviar para aprovação</button>
+            </div>
+        </form>
+    </section>
+
+@elseif ($hemocentro->status === 'pendente')
+    <section class="max-w-3xl">
+        <h1 class="manchete mt-2">Sua conta está em análise.</h1>
+        <p class="mt-4 max-w-[46ch] text-[1.0625rem] leading-normal text-cinza">
+            @if ($hemocentro->localReivindicado)
+                Você pediu para assumir o ponto <strong class="text-tinta">{{ $hemocentro->localReivindicado->nome }}</strong>.
+            @else
+                Você informou um local novo em <strong class="text-tinta">{{ $hemocentro->endereco }}</strong>.
+            @endif
+            A equipe DoaPlus confere o CNPJ e, quando aprovar, a agenda da sua unidade é liberada.
+        </p>
+
+        <form method="POST" action="{{ route('hemocentro.pedido.cancelar') }}" class="mt-6">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="botao-texto">Escolher outro local</button>
+        </form>
+    </section>
 
 @else
     @php

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('titulo') - DoaPlus</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    <x-pwa />
 
     <!-- Mesmas fontes da tela do mapa -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -25,28 +26,29 @@
     @endphp
 
     <header class="border-b border-linha">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-7 py-5">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-7 py-4">
             <a href="{{ route('home') }}" class="flex items-center gap-2 font-titulo text-[1.375rem] font-bold tracking-[-0.02em]">
                 <x-application-logo class="h-7 w-[22px] text-arterial" />
                 DoaPlus
             </a>
 
-            <nav aria-label="Painel" class="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {{-- py-2 em cada item: área de toque de ~40px no celular --}}
+            <nav aria-label="Painel" class="flex flex-wrap items-center gap-x-5">
                 @foreach ($links as $rota => $nome)
                     <a href="{{ route($rota) }}"
-                       @class(['font-bold text-sangue' => request()->routeIs($rota), 'hover:text-sangue'])
+                       @class(['py-2', 'font-bold text-sangue' => request()->routeIs($rota), 'hover:text-sangue'])
                        @if (request()->routeIs($rota)) aria-current="page" @endif>{{ $nome }}</a>
                 @endforeach
                 @if (! empty($alertasNovos))
-                    <a href="{{ route('dashboard') }}#alertas" class="inline-flex items-center gap-2 font-bold text-sangue">
+                    <a href="{{ route('dashboard') }}#alertas" class="inline-flex items-center gap-2 py-2 font-bold text-sangue">
                         Alertas
                         <span class="rounded-full bg-sangue px-2 py-0.5 text-sm leading-none text-white tabular-nums">{{ $alertasNovos }}<span class="sr-only"> novos</span></span>
                     </a>
                 @endif
-                <a href="{{ route('home') }}" class="hover:text-sangue">Ver o mapa</a>
+                <a href="{{ route('home') }}" class="py-2 hover:text-sangue">Ver o mapa</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="text-cinza hover:text-sangue">Sair</button>
+                    <button type="submit" class="py-2 text-cinza hover:text-sangue">Sair</button>
                 </form>
             </nav>
         </div>

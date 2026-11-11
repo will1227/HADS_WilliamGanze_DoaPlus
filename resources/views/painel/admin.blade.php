@@ -33,7 +33,9 @@
                                     Quer assumir o ponto <strong>{{ $pedido->localReivindicado->nome }}</strong>.
                                 @else
                                     Local novo em <strong>{{ $pedido->endereco }}</strong>.
-                                    @if (is_null($pedido->latitude) || is_null($pedido->longitude))
+                                    @if ($pedido->latitude && $pedido->longitude)
+                                        <a href="https://www.google.com/maps?q={{ $pedido->latitude }},{{ $pedido->longitude }}" target="_blank" rel="noopener" class="block text-sm text-cinza underline underline-offset-4 hover:text-sangue">Conferir coordenadas {{ $pedido->latitude }}, {{ $pedido->longitude }} no mapa</a>
+                                    @else
                                         <span class="block text-sm text-cinza">Sem coordenadas: só aparece no mapa depois de informá-las no perfil.</span>
                                     @endif
                                 @endif
@@ -44,18 +46,16 @@
                                     @csrf
                                     <button type="submit" class="botao-sangue botao-pequeno">{{ $pedido->localReivindicado ? 'Aprovar e unir ao ponto' : 'Aprovar' }}</button>
                                 </form>
-                                @if ($pedido->localReivindicado)
-                                    <form method="POST" action="{{ route('admin.rejeitar', $pedido->id) }}">
-                                        @csrf
-                                        <button type="submit" class="botao-texto text-sm">Rejeitar pedido</button>
-                                    </form>
-                                @endif
+                                <form method="POST" action="{{ route('admin.rejeitar', $pedido->id) }}">
+                                    @csrf
+                                    <button type="submit" class="botao-texto text-sm">Rejeitar pedido</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </li>
             @empty
-                <li class="py-6 text-cinza">Quando uma instituição se cadastrar, ela aparece aqui.</li>
+                <li class="py-6 text-cinza">Quando uma instituição se cadastrar e informar o local da unidade, ela aparece aqui.</li>
             @endforelse
         </ul>
     </section>

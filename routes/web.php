@@ -40,10 +40,13 @@ Route::get('/', function () {
     return view('welcome', compact('hemocentros', 'urgencias', 'tipoDoDoador'));
 })->name('home');
 
+// Política de Privacidade (LGPD, RNF06): pública, linkada no cadastro do doador
+Route::view('/privacidade', 'privacidade')->name('privacidade');
+
 // 2. Dashboard central para diferentes tipos de usuários (admin, doador, hemocentro)
 Route::get('/dashboard', function () {
     if (Auth::guard('web')->check()) {
-        // Busca todas as instituições aguardando aprovação (com ou sem pedido de um local provisório)
+        // Instituições que já informaram o local (ponto pré-cadastrado ou coordenadas) e aguardam aprovação
         $pedidos = \App\Models\Hemocentro::with('localReivindicado')
             ->where('status', 'pendente')
             ->get();
@@ -81,6 +84,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth:doador')->group(function () {
     Route::get('/meu-perfil', [DoadorController::class, 'editProfile'])->name('doador.perfil');
     Route::put('/meu-perfil', [DoadorController::class, 'updateProfile'])->name('doador.perfil.update');
+    Route::delete('/meu-perfil', [DoadorController::class, 'excluirConta'])->name('doador.excluir');
 
     // Rotas de Agendamento do Doador
     Route::get('/agendar', [AgendamentoController::class, 'create'])->name('agendamentos.create');
@@ -88,6 +92,10 @@ Route::middleware('auth:doador')->group(function () {
 
     // Alertas de urgência recebidos (HU10)
     Route::post('/alertas/lidos', [DoadorController::class, 'marcarAlertasLidos'])->name('alertas.lidos');
+
+    // Notificações push no celular/computador (RNF02)
+    Route::post('/push/inscricao', [DoadorController::class, 'salvarInscricaoPush'])->name('push.inscrever');
+    Route::delete('/push/inscricao', [DoadorController::class, 'removerInscricaoPush'])->name('push.cancelar');
 });
 
 // 4. Rotas do Perfil e Reivindicação do Hemocentro
@@ -97,6 +105,8 @@ Route::middleware('auth:hemocentro')->group(function () {
     
     // Rota para a instituição solicitar a posse de um ponto no mapa
     Route::post('/instituicao/reivindicar', [HemocentroController::class, 'reivindicar'])->name('hemocentro.reivindicar');
+    Route::post('/instituicao/localizacao', [HemocentroController::class, 'informarLocalizacao'])->name('hemocentro.localizacao');
+    Route::delete('/instituicao/pedido', [HemocentroController::class, 'cancelarPedido'])->name('hemocentro.pedido.cancelar');
 
     // Rotas de Gestão do Hemocentro
     Route::patch('/agendamentos/{id}/status', [AgendamentoController::class, 'atualizarStatus'])->name('agendamentos.status');
@@ -169,15 +179,16 @@ Route::middleware('auth:web')->group(function () {
         return back()->with('status', $mensagem);
     })->name('admin.aprovar');
 
-    // Rota para Rejeitar a Reivindicação
+    // Rota para Rejeitar o pedido (ponto pré-cadastrado ou local novo)
     Route::post('/admin/hemocentros/rejeitar/{id}', function ($id) {
-        $hemocentroReal = \App\Models\Hemocentro::findOrFail($id);
-        
-        // Apenas remove o vínculo, permitindo que a instituição tente outro local
+        $hemocentroReal = \App\Models\Hemocentro::where('status', 'pendente')->findOrFail($id);
+
+        // Sai da fila e volta para a etapa de escolher o local, com aviso no painel da instituição
         $hemocentroReal->fk_reivindicacao_id = null;
+        $hemocentroReal->status = 'rejeitado';
         $hemocentroReal->save();
 
-        return back()->with('erro', 'Pedido de reivindicação rejeitado.');
+        return back()->with('erro', 'Pedido rejeitado. A instituição pode enviar um novo.');
     })->name('admin.rejeitar');
     
 });

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DoaPlus - Encontre onde doar sangue</title>
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+    <x-pwa />
 
     <!-- Familjen Grotesk nos títulos; Atkinson Hyperlegible (feita para baixa visão) no texto -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -106,6 +107,8 @@
         .urg .dist { font-family: var(--titulo); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
         .urg .msg { grid-column: 2 / 4; font-size: .9375rem; line-height: 1.45; color: #3A4252; }
         .urg .ate { grid-column: 2 / 4; font-size: .8125rem; color: var(--cinza); }
+        .urg-zap { display: inline-block; margin: -.5rem 0 .875rem 5.75rem; font-size: .8125rem; color: var(--tinta); text-decoration: underline; text-underline-offset: .25em; }
+        .urg-zap:hover { color: var(--sangue); }
         .urg-vazio { padding: 1rem 1.75rem 0; color: var(--cinza); }
         .urg-vazio button { font: inherit; color: var(--tinta); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: .25em; cursor: pointer; }
         .pop-urg { margin: 0 0 .75rem !important; font-size: .8125rem; font-weight: 700; color: var(--sangue); }
@@ -190,7 +193,7 @@
                         <a href="{{ url('/dashboard') }}">Meu painel</a>
                     @else
                         <a href="{{ route('login') }}">Entrar</a>
-                        <a href="{{ url('/register/doador') }}" class="criar">Criar conta</a>
+                        <a href="{{ route('register') }}" class="criar">Criar conta</a>
                     @endif
                 </nav>
             </header>
@@ -232,6 +235,9 @@
                                     <span class="msg">{{ $urgencia->mensagem }}</span>
                                     <span class="ate">Até {{ $urgencia->data_expiracao->format('d/m') }}</span>
                                 </button>
+                                {{-- Fora do botão: um link não pode ficar dentro de outro elemento clicável (HU13) --}}
+                                <x-compartilhar-whatsapp class="urg-zap"
+                                    :texto="'O '.$urgencia->hemocentro->nome.' precisa de sangue '.$urgencia->tipo_sanguineo.' até '.$urgencia->data_expiracao->format('d/m').'. Se você puder, doe:'" />
                             </li>
                         @endforeach
                     </ul>
@@ -247,6 +253,7 @@
 
             <p class="rodape">
                 Representa um hemocentro? <a href="{{ url('/register/hemocentro') }}">Cadastre sua instituição</a>.
+                <br><a href="{{ route('privacidade') }}">Política de Privacidade</a>
             </p>
         </main>
 
