@@ -27,6 +27,7 @@ class DoacaoFactory extends Factory
         ];
     }
 
+    // Nos testes: doação que ainda não foi validada
     public function pendente(): static
     {
         return $this->state(fn () => ['status_validacao' => 'pendente']);

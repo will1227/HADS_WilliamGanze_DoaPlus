@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // Medalhas da vitrine (HU12). Cada doação validada vale 100 pontos (HU11),
+    // Medalhas da vitrine (RF11/HU12). Cada doação validada vale 100 pontos (RF10/HU11),
     // então "pontos_necessarios" / 100 = número de doações do marco.
     private array $medalhas = [
         ['nome' => 'Primeira Gota', 'descricao' => 'Fez a primeira doação de sangue.', 'pontos_necessarios' => 100],
@@ -18,6 +18,7 @@ return new class extends Migration
         ['nome' => 'Lenda Viva', 'descricao' => 'Completou 50 doações.', 'pontos_necessarios' => 5000],
     ];
 
+    // Cadastra as 6 medalhas e dá pontos e medalhas a quem já tinha doações validadas (RF11/HU12)
     public function up(): void
     {
         // Um doador não pode ganhar a mesma medalha duas vezes
@@ -60,6 +61,7 @@ return new class extends Migration
         }
     }
 
+    // Desfaz a migration: apaga as medalhas, zera os pontos e tira a regra de medalha única
     public function down(): void
     {
         // Apagar as medalhas remove as conquistas em cascata

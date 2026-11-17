@@ -12,17 +12,7 @@ use Illuminate\Validation\Rule;
 
 class DoadorController extends Controller
 {
-    public function index()
-    {
-        $doadores = Doador::paginate(10);
-        return view('doadores.index', compact('doadores'));
-    }
-
-    public function create()
-    {
-        return view('doadores.create');
-    }
-
+    // Cadastra um novo doador vindo da tela pública de cadastro (RF01/HU01)
     public function store(Request $request)
     {
         // 1. Limpa a máscara do CPF (deixa apenas números)
@@ -62,49 +52,14 @@ class DoadorController extends Controller
         return redirect()->route('login')->with('status', 'Conta de Doador criada com sucesso! Faça seu login.');
     }
 
-    public function show(string $id)
-    {
-        $doador = Doador::with(['agendamentos.hemocentro', 'medalhas'])->findOrFail($id);
-        return view('doadores.show', compact('doador'));
-    }
-
-    public function edit(string $id)
-    {
-        $doador = Doador::findOrFail($id);
-        return view('doadores.edit', compact('doador'));
-    }
-
-    public function update(Request $request, string $id)
-    {
-        $doador = Doador::findOrFail($id);
-
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'peso' => 'required|numeric|min:50',
-            'email' => 'required|email|unique:doadores,email,' . $doador->id,
-        ]);
-
-        $doador->update($validated);
-
-        return redirect()->route('doadores.show', $doador->id)->with('success', 'Dados atualizados com sucesso!');
-    }
-
-    public function destroy(string $id)
-    {
-        $doador = Doador::findOrFail($id);
-        $doador->delete();
-
-        return redirect()->route('doadores.index')->with('success', 'Conta de doador encerrada.');
-    }
-
-    // Exibe a tela de edição do próprio doador logado
+    // Exibe a tela de edição do próprio doador logado (RF01/HU01)
     public function editProfile()
     {
         $doador = Auth::guard('doador')->user();
         return view('painel.doador-edit', compact('doador'));
     }
 
-    // Processa a atualização dos dados
+    // Processa a atualização dos dados (RF01/HU01)
     public function updateProfile(Request $request)
     {
         /** @var \App\Models\Doador $doador */
@@ -160,7 +115,7 @@ class DoadorController extends Controller
         return redirect()->route('home');
     }
 
-    // Tira os alertas de urgência da lista de novos do painel
+    // Tira os alertas de urgência da lista de novos do painel (RF12/HU10)
     public function marcarAlertasLidos(Request $request)
     {
         $request->user('doador')->unreadNotifications->markAsRead();
@@ -192,6 +147,7 @@ class DoadorController extends Controller
         return response()->noContent();
     }
 
+    // Apaga a inscrição de push deste navegador (quando o doador desativa as notificações) (RNF02)
     public function removerInscricaoPush(Request $request)
     {
         $validated = $request->validate(['endpoint' => 'required|string|max:1024']);
@@ -201,6 +157,7 @@ class DoadorController extends Controller
         return response()->noContent();
     }
 
+    // Regra de validação: o endpoint precisa ser de um dos serviços de push da lista acima
     private function servicoPushConhecido(string $atributo, mixed $valor, \Closure $falhar): void
     {
         $host = parse_url((string) $valor, PHP_URL_HOST) ?: '';

@@ -30,6 +30,7 @@ class Hemocentro extends Authenticatable
         return $this->senha;
     }
 
+    // A senha é criptografada sozinha ao salvar
     protected function casts(): array
     {
         return [
@@ -37,28 +38,32 @@ class Hemocentro extends Authenticatable
         ];
     }
 
+    // Agendamentos marcados neste hemocentro
     public function agendamentos(): HasMany
     {
         return $this->hasMany(Agendamento::class, 'fk_hemocentro_id');
     }
 
+    // Doações coletadas aqui
     public function doacoes(): HasMany
     {
         return $this->hasMany(Doacao::class, 'fk_hemocentro_id');
     }
 
+    // Alertas que ele publicou no mural (RF07/HU09)
     public function alertas(): HasMany
     {
         return $this->hasMany(Alerta::class, 'fk_hemocentro_id');
     }
 
     // Conta recém-criada ('incompleto') ou com pedido recusado pelo admin ('rejeitado'):
-    // ainda precisa dizer onde fica a unidade antes de entrar na fila de aprovação
+    // ainda precisa dizer onde fica a unidade antes de entrar na fila de aprovação (RF06/HU02)
     public function precisaEscolherLocal(): bool
     {
         return in_array($this->status, ['incompleto', 'rejeitado']);
     }
 
+    // Ponto pré-cadastrado que a instituição pediu para assumir (RF06/HU02)
     public function localReivindicado()
     {
         return $this->belongsTo(Hemocentro::class, 'fk_reivindicacao_id');

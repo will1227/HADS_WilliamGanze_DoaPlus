@@ -91,7 +91,7 @@
         .local .breve { grid-column: 2; justify-self: start; font-size: .8125rem; color: #6B4E00; background: #FBF0D2; padding: .125rem .5rem; border-radius: 4px; margin-top: .25rem; }
         .vazio { padding: 2rem 1.75rem; color: var(--cinza); }
 
-        /* Mural de urgências (HU09): o tipo sanguíneo em falta é o que salta aos olhos */
+        /* Mural de urgências (RF07/HU09): o tipo sanguíneo em falta é o que salta aos olhos */
         .urgencias { margin-bottom: 2rem; }
         .tipos { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem 1.75rem .25rem; }
         .tipo { font-family: var(--titulo); font-weight: 700; font-size: .9375rem; min-width: 3rem; padding: .375rem .75rem; border-radius: 999px; border: 1px solid #878F9D; background: #fff; color: var(--tinta); cursor: pointer; }
@@ -210,7 +210,7 @@
                 </div>
             </section>
 
-            {{-- Mural de urgências (HU09): alertas publicados pelos hemocentros --}}
+            {{-- Mural de urgências (RF07/HU09): alertas publicados pelos hemocentros --}}
             @if ($urgencias->isNotEmpty())
                 @php($tiposNoMural = collect(\App\Models\Alerta::TIPOS_SANGUINEOS)->filter(fn ($t) => $urgencias->contains('tipo_sanguineo', $t) || $t === $tipoDoDoador))
                 <section class="urgencias" aria-labelledby="urgTitulo">
@@ -235,7 +235,7 @@
                                     <span class="msg">{{ $urgencia->mensagem }}</span>
                                     <span class="ate">Até {{ $urgencia->data_expiracao->format('d/m') }}</span>
                                 </button>
-                                {{-- Fora do botão: um link não pode ficar dentro de outro elemento clicável (HU13) --}}
+                                {{-- Fora do botão: um link não pode ficar dentro de outro elemento clicável (RF13/HU13) --}}
                                 <x-compartilhar-whatsapp class="urg-zap"
                                     :texto="'O '.$urgencia->hemocentro->nome.' precisa de sangue '.$urgencia->tipo_sanguineo.' até '.$urgencia->data_expiracao->format('d/m').'. Se você puder, doe:'" />
                             </li>
@@ -269,7 +269,7 @@
         </div>
     </div>
 
-    <!-- Guia do doador (HU08) -->
+    <!-- Guia do doador (RF05/HU08) -->
     <dialog id="guia" class="guia" aria-labelledby="guiaTitulo">
         <div class="guia-cab">
             <h2 id="guiaTitulo">Guia do doador</h2>
@@ -376,6 +376,7 @@
             if (e.target === this) this.close();
         });
 
+        // Monta o mapa, a lista de hemocentros e o mural quando a página termina de carregar (RF04/HU07)
         document.addEventListener('DOMContentLoaded', function () {
             const URL_AGENDAR = @json(url('/agendar'));
             const hemocentros = @json($hemocentros);
@@ -414,6 +415,7 @@
             function gotaSvg(cor, w, h) {
                 return `<svg width="${w}" height="${h}" viewBox="0 0 22 28" aria-hidden="true"><path d="M11 1S1 11.9 1 17.4a10 10 0 0 0 20 0C21 11.9 11 1 11 1z" fill="${cor}" stroke="#fff" stroke-width="2"/></svg>`;
             }
+            // Transforma a gota em um ícone de pino do Leaflet
             function pinIcon(cor) {
                 return L.divIcon({
                     className: 'pin-icon',
@@ -428,6 +430,7 @@
             const iconeBreve = pinIcon(COR_BREVE);
             const userIcon = L.divIcon({ className: 'pin-icon', html: '<div class="user-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
 
+            // Monta o balão do pino: nome, endereço, urgências e botões de agendar e WhatsApp (RF04/HU07)
             function popupHtml(h) {
                 let acoes = '';
                 if (h.agendavel) {
@@ -458,10 +461,12 @@
             const lista = document.getElementById('lista');
             const listaInfo = document.getElementById('listaInfo');
 
+            // Escreve a distância no formato brasileiro (ex.: 3,2 km)
             function formatarKm(km) {
                 return (km < 10 ? km.toFixed(1) : Math.round(km).toString()).replace('.', ',') + ' km';
             }
 
+            // Destaca na lista o hemocentro escolhido
             function marcarSelecionado(local) {
                 locais.forEach(l => l.botao && l.botao.setAttribute('aria-current', l === local ? 'true' : 'false'));
             }
@@ -477,6 +482,7 @@
                 }
             }
 
+            // Redesenha a lista lateral de hemocentros (com a distância, se souber onde a pessoa está)
             function desenharLista() {
                 lista.innerHTML = '';
                 if (!locais.length) {
@@ -510,6 +516,7 @@
             const btnAgendar = document.getElementById('btnAgendar');
             const ativos = locais.filter(l => l.agendavel);
 
+            // Troca a frase principal do topo, com animação
             function mostrarDestaque(html) {
                 destaque.innerHTML = html;
                 destaque.classList.remove('anima');
@@ -517,6 +524,7 @@
                 destaque.classList.add('anima');
             }
 
+            // Frase do topo quando não sabemos onde a pessoa está
             function destaqueSemLocal(motivo) {
                 const qtd = ativos.length;
                 if (!qtd) {
@@ -527,6 +535,7 @@
                 mostrarDestaque(`<h1>Doe sangue perto de você.</h1><p>${texto} no mapa. ${motivo}</p>`);
             }
 
+            // Frase do topo com o hemocentro ativo mais próximo e já liga o botão de agendar a ele
             function destaqueComLocal() {
                 const proximo = ativos[0];
                 if (!proximo) { destaqueSemLocal(''); return; }
@@ -549,6 +558,7 @@
             const urgVazio = document.getElementById('urgVazio');
             const botoesTipo = document.querySelectorAll('.tipo');
 
+            // Mostra só os alertas do tipo escolhido (e, com localização, só os próximos) (RF07/HU09)
             function filtrarUrgencias() {
                 if (!urgencias.length) return;
                 let visiveis = 0;
@@ -593,6 +603,7 @@
             // 5. Localização do usuário
             let marcadorUsuario = null;
 
+            // Pega a localização da pessoa e reorganiza mapa, lista e mural pela distância (RF04/HU07)
             function localizar() {
                 if (!('geolocation' in navigator)) {
                     destaqueSemLocal('Seu navegador não informa a localização; escolha um local na lista.');

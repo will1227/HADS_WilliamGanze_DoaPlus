@@ -10,17 +10,7 @@ use Illuminate\Validation\Rule;
 
 class HemocentroController extends Controller
 {
-    public function index()
-    {
-        $hemocentros = Hemocentro::paginate(10);
-        return view('hemocentros.index', compact('hemocentros'));
-    }
-
-    public function create()
-    {
-        return view('hemocentros.create');
-    }
-
+    // Cadastra uma nova instituição vinda da tela pública de cadastro (RF06/HU02)
     public function store(Request $request)
     {
         // 1. Limpa as máscaras de CNPJ e Telefone
@@ -50,48 +40,14 @@ class HemocentroController extends Controller
         return redirect()->route('login')->with('status', 'Instituição cadastrada com sucesso! Faça seu login e informe onde fica a sua unidade para enviar à aprovação.');
     }
 
-    public function show(string $id)
-    {
-        $hemocentro = Hemocentro::with(['alertas', 'agendamentos.doador'])->findOrFail($id);
-        return view('hemocentros.show', compact('hemocentro'));
-    }
-
-    public function edit(string $id)
-    {
-        $hemocentro = Hemocentro::findOrFail($id);
-        return view('hemocentros.edit', compact('hemocentro'));
-    }
-
-    public function update(Request $request, string $id)
-    {
-        $hemocentro = Hemocentro::findOrFail($id);
-
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:hemocentros,email,' . $hemocentro->id,
-            'telefone' => 'required|string|max:20',
-            'endereco' => 'required|string|max:255',
-            'status' => 'required|in:pendente,ativo',
-        ]);
-
-        $hemocentro->update($validated);
-
-        return redirect()->route('hemocentros.show', $hemocentro->id)->with('success', 'Dados atualizados.');
-    }
-
-    public function destroy(string $id)
-    {
-        $hemocentro = Hemocentro::findOrFail($id);
-        $hemocentro->delete();
-        
-        return redirect()->route('hemocentros.index')->with('success', 'Hemocentro removido.');
-    }
+    // Exibe a tela de edição do perfil da instituição logada (RF06/HU02)
     public function editProfile()
     {
         $hemocentro = Auth::guard('hemocentro')->user();
         return view('painel.hemocentro-edit', compact('hemocentro'));
     }
 
+    // Salva os dados da instituição, inclusive a localização no mapa (RF06/HU02)
     public function updateProfile(Request $request)
     {
         /** @var \App\Models\Hemocentro $hemocentro */
@@ -121,7 +77,7 @@ class HemocentroController extends Controller
         return redirect()->route('hemocentro.perfil')->with('status', 'Dados institucionais e localização no mapa atualizados com sucesso!');
     }
 
-    // Etapa 1 do cadastro, opção A: assumir um ponto pré-cadastrado. Envia para a aprovação do admin.
+    // Etapa 1 do cadastro, opção A: assumir um ponto pré-cadastrado. Envia para a aprovação do admin. (RF06/HU02)
     public function reivindicar(Request $request)
     {
         $request->validate([
@@ -145,7 +101,7 @@ class HemocentroController extends Controller
         return redirect()->route('dashboard')->with('status', 'Pedido enviado! Aguarde a aprovação do administrador para unificar a sua conta com o mapa.');
     }
 
-    // Etapa 1 do cadastro, opção B: unidade fora da lista, informa as coordenadas. Envia para a aprovação do admin.
+    // Etapa 1 do cadastro, opção B: unidade fora da lista, informa as coordenadas. Envia para a aprovação do admin. (RF06/HU02)
     public function informarLocalizacao(Request $request)
     {
         $validated = $request->validate([
@@ -168,7 +124,7 @@ class HemocentroController extends Controller
         return redirect()->route('dashboard')->with('status', 'Localização enviada! Aguarde a aprovação do administrador para a sua unidade aparecer no mapa.');
     }
 
-    // Desiste do pedido em análise e volta para a etapa de escolher o local
+    // Desiste do pedido em análise e volta para a etapa de escolher o local (RF06/HU02)
     public function cancelarPedido()
     {
         /** @var \App\Models\Hemocentro $hemocentro */

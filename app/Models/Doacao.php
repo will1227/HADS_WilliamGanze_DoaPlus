@@ -18,7 +18,7 @@ class Doacao extends Model
         'fk_doador_id', 'fk_hemocentro_id', 'data_coleta', 'status_validacao'
     ];
 
-    // Gatilho da gamificação (HU11): quando a doação passa a "validada", o doador ganha os pontos.
+    // Gatilho da gamificação (RF10/HU11): quando a doação passa a "validada", o doador ganha os pontos.
     // isDirty() garante que salvar de novo uma doação já validada não pontua duas vezes.
     protected static function booted(): void
     {
@@ -29,6 +29,7 @@ class Doacao extends Model
         });
     }
 
+    // Faz data_coleta virar data (Carbon)
     protected function casts(): array
     {
         return [
@@ -36,11 +37,13 @@ class Doacao extends Model
         ];
     }
 
+    // Quem doou
     public function doador(): BelongsTo
     {
         return $this->belongsTo(Doador::class, 'fk_doador_id');
     }
 
+    // Onde a coleta foi feita
     public function hemocentro(): BelongsTo
     {
         return $this->belongsTo(Hemocentro::class, 'fk_hemocentro_id');

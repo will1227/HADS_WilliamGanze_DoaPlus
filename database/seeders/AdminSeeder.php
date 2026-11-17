@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
+    // Cria a conta do administrador (login de demonstração)
     public function run(): void
     {
         User::create([

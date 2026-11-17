@@ -13,7 +13,7 @@
 @endphp
 
 <div class="max-w-3xl">
-    {{-- Alertas de urgência de hemocentros próximos (HU10) --}}
+    {{-- Alertas de urgência de hemocentros próximos (RF12/HU10) --}}
     @php($alertasNovos = $doador->alertasNovos())
     @if ($alertasNovos->isNotEmpty())
         <section id="alertas" class="mb-12 rounded-lg bg-sangue-claro px-5 py-5 sm:px-6" aria-labelledby="alertasTitulo">
@@ -49,7 +49,7 @@
         </section>
     @endif
 
-    {{-- A frase principal muda conforme a situação do doador, como o "km" da tela inicial --}}
+    {{-- A frase principal muda conforme a situação do doador, como o "km" da tela inicial (RF03/HU03) --}}
     <section>
         <p class="text-cinza">Olá, {{ explode(' ', $doador->nome)[0] }}.</p>
 
@@ -115,7 +115,7 @@
         </div>
     </dl>
 
-    {{-- Vitrine de medalhas (HU12): conquistadas aparecem coloridas, as outras em cinza --}}
+    {{-- Vitrine de medalhas (RF11/HU12): conquistadas aparecem coloridas, as outras em cinza --}}
     <section class="mt-12" aria-labelledby="medalhasTitulo">
         <div class="secao-cab">
             <h2 id="medalhasTitulo">Suas medalhas</h2>

@@ -18,7 +18,7 @@ class Doador extends Authenticatable
     /** @use HasFactory<DoadorFactory> */
     use HasFactory, HasPushSubscriptions, Notifiable;
 
-    // Pontos ganhos a cada doação validada pelo hemocentro (HU11)
+    // Pontos ganhos a cada doação validada pelo hemocentro (RF10/HU11)
     public const PONTOS_POR_DOACAO = 100;
 
     protected $table = 'doadores';
@@ -32,11 +32,13 @@ class Doador extends Authenticatable
         'senha', 'remember_token',
     ];
 
+    // Diz ao Laravel que a coluna de senha se chama 'senha'
     public function getAuthPassword()
     {
         return $this->senha;
     }
 
+    // A senha é criptografada sozinha ao salvar; pontos vira número e consentimento_em vira data
     protected function casts(): array
     {
         return [
@@ -46,12 +48,13 @@ class Doador extends Authenticatable
         ];
     }
 
+    // Todos os agendamentos do doador
     public function agendamentos(): HasMany
     {
         return $this->hasMany(Agendamento::class, 'fk_doador_id');
     }
 
-    // Alertas de urgência recebidos, ainda não vistos e ainda no mural (HU10).
+    // Alertas de urgência recebidos, ainda não vistos e ainda no mural (RF12/HU10).
     // Confere o alerta no banco porque o hemocentro pode encerrá-lo antes da validade.
     public function alertasNovos(): Collection
     {
@@ -66,29 +69,32 @@ class Doador extends Authenticatable
             ->values();
     }
 
+    // Diz se o doador já informou latitude e longitude
     public function temLocalizacao(): bool
     {
         return ! is_null($this->latitude) && ! is_null($this->longitude);
     }
 
-    // Agendamentos ainda não finalizados (o doador só pode ter um por vez)
+    // Agendamentos ainda não finalizados (o doador só pode ter um por vez) (RF02/HU04)
     public function agendamentosEmAberto(): HasMany
     {
         return $this->agendamentos()->whereIn('status', ['pendente', 'confirmado']);
     }
 
+    // Medalhas conquistadas (tabela conquistas) (RF11/HU12)
     public function medalhas(): BelongsToMany
     {
         return $this->belongsToMany(Medalha::class, 'conquistas', 'fk_doador_id', 'fk_medalha_id')
                     ->withTimestamps();
     }
 
+    // Histórico de doações do doador
     public function doacoes()
     {
         return $this->hasMany(Doacao::class, 'fk_doador_id');
     }
 
-    // Soma os pontos de uma doação validada e libera as medalhas alcançadas (HU11 e HU12).
+    // Soma os pontos de uma doação validada e libera as medalhas alcançadas (RF10/HU11 e RF11/HU12).
     // Chamado pelo model Doacao; increment() soma direto no banco, sem ler o saldo antes.
     public function receberPontosDaDoacao(): void
     {
@@ -99,6 +105,7 @@ class Doador extends Authenticatable
         );
     }
 
+    // Calcula a partir de quando o doador pode doar de novo (intervalo de 60/90 dias e limite de 4/3 por ano) (RF03/HU03)
     public function getDataProximaDoacaoAttribute()
     {
         $ultimaDoacao = $this->doacoes()->orderBy('data_coleta', 'desc')->first();
@@ -127,7 +134,7 @@ class Doador extends Authenticatable
         return $dataLiberacaoIntervalo;
     }
 
-    // Faixa etária legal para doação: 16 a 69 anos
+    // Faixa etária legal para doação: 16 a 69 anos (RF03/HU03)
     public function getDentroDaFaixaEtariaAttribute()
     {
         $idade = \Carbon\Carbon::parse($this->data_nascimento)->age;
@@ -135,6 +142,7 @@ class Doador extends Authenticatable
         return $idade >= 16 && $idade <= 69;
     }
 
+    // Diz se o doador pode doar hoje: idade dentro da faixa e intervalo de descanso cumprido (RF03/HU03)
     public function getPodeDoarAttribute()
     {
         if (!$this->dentro_da_faixa_etaria) {
@@ -147,7 +155,7 @@ class Doador extends Authenticatable
         return now()->startOfDay()->greaterThanOrEqualTo(\Carbon\Carbon::parse($this->data_proxima_doacao)->startOfDay());
     }
 
-    // 3. Calcula a Patente (Gamificação com cores de metais/gemas)
+    // 3. Calcula a Patente (Gamificação com cores de metais/gemas) (RF10/HU11)
     public function getPatenteAttribute()
     {
         $totalDoacoes = $this->doacoes()->count();

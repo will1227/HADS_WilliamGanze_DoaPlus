@@ -13,6 +13,7 @@ class Medalha extends Model
         'nome', 'descricao', 'pontos_necessarios'
     ];
 
+    // Faz pontos_necessarios virar número
     protected function casts(): array
     {
         return [
@@ -20,6 +21,7 @@ class Medalha extends Model
         ];
     }
 
+    // Doadores que já ganharam esta medalha (RF11/HU12)
     public function doadores(): BelongsToMany
     {
         return $this->belongsToMany(Doador::class, 'conquistas', 'fk_medalha_id', 'fk_doador_id')

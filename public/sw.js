@@ -3,6 +3,7 @@
 const CACHE = 'doaplus-v1';
 const OFFLINE = '/offline.html';
 
+// Na instalação, guarda a página offline e o ícone no cache
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([OFFLINE, '/icons/icon-192.png'])));
     self.skipWaiting();

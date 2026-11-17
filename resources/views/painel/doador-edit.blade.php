@@ -36,7 +36,7 @@
             <x-input-error :messages="$errors->get('senha')" class="mt-2" />
         </div>
 
-        {{-- Localização para os alertas regionais (HU10): opcional, pega pelo navegador --}}
+        {{-- Localização para os alertas regionais (RF12/HU10): opcional, pega pelo navegador --}}
         <fieldset id="localizacao" class="mt-4 border-t border-linha pt-6 sm:col-span-2">
             <legend class="float-left mb-1 w-full font-titulo text-[1.0625rem] font-bold">Alertas de urgência perto de você</legend>
             <p class="clear-left max-w-[60ch] text-cinza">
@@ -140,6 +140,7 @@
             }, { enableHighAccuracy: false, timeout: 10000 });
         });
 
+        // Limpa a localização do formulário (só vale depois de salvar)
         remover.addEventListener('click', function () {
             lat.value = '';
             lng.value = '';
@@ -158,6 +159,7 @@
         const desativar = document.getElementById('btnDesativarPush');
         const suportado = 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
 
+        // Manda a inscrição de push para o servidor (POST salva, DELETE apaga)
         function enviar(metodo, corpo) {
             return fetch('{{ route('push.inscrever') }}', {
                 method: metodo,
@@ -166,12 +168,14 @@
             });
         }
 
+        // Troca a mensagem e mostra só o botão certo (Ativar ou Desativar)
         function mostrar(texto, botao) {
             status.textContent = texto;
             ativar.classList.toggle('hidden', botao !== ativar);
             desativar.classList.toggle('hidden', botao !== desativar);
         }
 
+        // Confere se este navegador já está inscrito e atualiza a tela
         async function atualizar() {
             if (!suportado) {
                 return mostrar('Este navegador não recebe notificações. No iPhone, primeiro adicione o DoaPlus à Tela de Início (Compartilhar > Adicionar à Tela de Início).', null);
@@ -195,6 +199,7 @@
         ativar.addEventListener('click', () => ligar().catch(falhou(ativar)));
         desativar.addEventListener('click', () => desligar().catch(falhou(desativar)));
 
+        // Pede permissão, inscreve o navegador e avisa o servidor
         async function ligar() {
             if (await Notification.requestPermission() !== 'granted') {
                 return atualizar();
@@ -209,6 +214,7 @@
             atualizar();
         }
 
+        // Cancela a inscrição no navegador e no servidor
         async function desligar() {
             const registro = await navigator.serviceWorker.ready;
             const inscricao = await registro.pushManager.getSubscription();

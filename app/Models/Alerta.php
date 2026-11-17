@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 class Alerta extends Model
 {
-    // Distância máxima entre o doador e o hemocentro para receber o alerta (HU10)
+    // Distância máxima entre o doador e o hemocentro para receber o alerta (RF12/HU10)
     public const RAIO_KM = 50;
 
     public const TIPOS_SANGUINEOS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -20,6 +20,7 @@ class Alerta extends Model
         'fk_hemocentro_id', 'tipo_sanguineo', 'mensagem', 'data_publicacao', 'data_expiracao'
     ];
 
+    // Faz as datas virarem objetos Carbon
     protected function casts(): array
     {
         return [
@@ -28,18 +29,19 @@ class Alerta extends Model
         ];
     }
 
+    // Hemocentro que publicou o alerta
     public function hemocentro(): BelongsTo
     {
         return $this->belongsTo(Hemocentro::class, 'fk_hemocentro_id');
     }
 
-    // Alertas ainda no prazo e não encerrados pelo hemocentro
+    // Alertas ainda no prazo e não encerrados pelo hemocentro (RF07/HU09)
     public function scopeAtivos(Builder $query): void
     {
         $query->where('data_expiracao', '>', now());
     }
 
-    // Doadores que recebem a notificação: mesmo tipo sanguíneo, a até RAIO_KM do hemocentro e aptos a doar agora
+    // Doadores que recebem a notificação: mesmo tipo sanguíneo, a até RAIO_KM do hemocentro e aptos a doar agora (RF12/HU10)
     public function destinatarios(): Collection
     {
         $hemocentro = $this->hemocentro;

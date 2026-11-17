@@ -9,6 +9,7 @@ use Illuminate\Database\Seeder;
 
 class DoadorSeeder extends Seeder
 {
+    // Cria dois doadores de exemplo: um novo e um veterano com medalhas
     public function run(): void
     {
         // Doadora nova: conta criada agora, sem nenhuma doação (pode doar já)
@@ -46,7 +47,7 @@ class DoadorSeeder extends Seeder
 
         for ($i = 0; $i < 10; $i++) {
             // Criar a doação já "validada" dispara o gatilho do model Doacao, que soma
-            // os pontos e libera as medalhas como no sistema real (HU11 e HU12)
+            // os pontos e libera as medalhas como no sistema real (RF10/HU11 e RF11/HU12)
             Doacao::create([
                 'fk_doador_id' => $carlos->id,
                 'fk_hemocentro_id' => ($i % 4 === 3 ? $portoAlegre : $passoFundo)->id,

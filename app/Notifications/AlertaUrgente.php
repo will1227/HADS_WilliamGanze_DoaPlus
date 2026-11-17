@@ -7,13 +7,15 @@ use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
-// Aviso de urgência: aparece no painel do doador (HU10) e, se ele ativou, chega como notificação push (RNF02)
+// Aviso de urgência: aparece no painel do doador (RF12/HU10) e, se ele ativou, chega como notificação push (RNF02)
 class AlertaUrgente extends Notification
 {
+    // Guarda o alerta que vai ser enviado
     public function __construct(public Alerta $alerta)
     {
     }
 
+    // Decide por onde o aviso vai: sempre pro painel e, se o doador ativou, também por push
     /**
      * @return array<int, string>
      */

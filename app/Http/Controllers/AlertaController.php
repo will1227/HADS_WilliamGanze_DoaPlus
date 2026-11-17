@@ -9,9 +9,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
-// Mural de urgências: o hemocentro publica e encerra alertas (HU09) e os doadores próximos são avisados (HU10)
+// Mural de urgências: o hemocentro publica e encerra alertas (RF07/HU09) e os doadores próximos são avisados (RF12/HU10)
 class AlertaController extends Controller
 {
+    // Publica o alerta no mural e avisa os doadores compatíveis que estão por perto (RF07/HU09 e RF12/HU10)
     public function store(Request $request)
     {
         /** @var \App\Models\Hemocentro $hemocentro */
@@ -50,6 +51,7 @@ class AlertaController extends Controller
         return redirect()->route('dashboard')->with('status', "Alerta de {$alerta->tipo_sanguineo} publicado no mural. {$avisados}");
     }
 
+    // Tira o alerta do mural antes do prazo (a validade passa a ser agora) (RF07/HU09)
     public function encerrar(Request $request, string $id)
     {
         // Só o hemocentro dono do alerta pode encerrá-lo

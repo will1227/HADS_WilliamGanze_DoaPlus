@@ -7,7 +7,7 @@ use App\Http\Controllers\HemocentroController;
 use App\Http\Controllers\AgendamentoController;
 use App\Http\Controllers\AlertaController;
 
-// 1. Rota da Tela Inicial (Mapa e FAQ)
+// 1. Rota da Tela Inicial (Mapa e FAQ) (RF04/HU07 e RF05/HU08)
 Route::get('/', function () {
     // Busca os hemocentros ativos e provisórios que têm latitude e longitude preenchidas
     // (contas ainda aguardando aprovação não aparecem).
@@ -27,7 +27,7 @@ Route::get('/', function () {
                                              'agendavel' => $h->status === 'ativo',
                                          ]);
 
-    // Mural de urgências (HU09): alertas no prazo de hemocentros ativos que estão no mapa
+    // Mural de urgências (RF07/HU09): alertas no prazo de hemocentros ativos que estão no mapa
     $urgencias = \App\Models\Alerta::ativos()
         ->whereHas('hemocentro', fn ($q) => $q->where('status', 'ativo')->whereNotNull('latitude')->whereNotNull('longitude'))
         ->with('hemocentro')
@@ -80,17 +80,17 @@ Route::get('/dashboard', function () {
     return redirect('/');
 })->middleware('auth:web,doador,hemocentro')->name('dashboard');
 
-// 3. Rotas do Perfil do Doador
+// 3. Rotas do Perfil do Doador (RF01/HU01)
 Route::middleware('auth:doador')->group(function () {
     Route::get('/meu-perfil', [DoadorController::class, 'editProfile'])->name('doador.perfil');
     Route::put('/meu-perfil', [DoadorController::class, 'updateProfile'])->name('doador.perfil.update');
     Route::delete('/meu-perfil', [DoadorController::class, 'excluirConta'])->name('doador.excluir');
 
-    // Rotas de Agendamento do Doador
+    // Rotas de Agendamento do Doador (RF02/HU04)
     Route::get('/agendar', [AgendamentoController::class, 'create'])->name('agendamentos.create');
     Route::post('/agendar', [AgendamentoController::class, 'store'])->name('agendamentos.store');
 
-    // Alertas de urgência recebidos (HU10)
+    // Alertas de urgência recebidos (RF12/HU10)
     Route::post('/alertas/lidos', [DoadorController::class, 'marcarAlertasLidos'])->name('alertas.lidos');
 
     // Notificações push no celular/computador (RNF02)
@@ -98,7 +98,7 @@ Route::middleware('auth:doador')->group(function () {
     Route::delete('/push/inscricao', [DoadorController::class, 'removerInscricaoPush'])->name('push.cancelar');
 });
 
-// 4. Rotas do Perfil e Reivindicação do Hemocentro
+// 4. Rotas do Perfil e Reivindicação do Hemocentro (RF06/HU02)
 Route::middleware('auth:hemocentro')->group(function () {
     Route::get('/instituicao/perfil', [HemocentroController::class, 'editProfile'])->name('hemocentro.perfil');
     Route::put('/instituicao/perfil', [HemocentroController::class, 'updateProfile'])->name('hemocentro.perfil.update');
@@ -108,15 +108,15 @@ Route::middleware('auth:hemocentro')->group(function () {
     Route::post('/instituicao/localizacao', [HemocentroController::class, 'informarLocalizacao'])->name('hemocentro.localizacao');
     Route::delete('/instituicao/pedido', [HemocentroController::class, 'cancelarPedido'])->name('hemocentro.pedido.cancelar');
 
-    // Rotas de Gestão do Hemocentro
+    // Rotas de Gestão do Hemocentro (RF09/HU05 e RF08/HU06)
     Route::patch('/agendamentos/{id}/status', [AgendamentoController::class, 'atualizarStatus'])->name('agendamentos.status');
 
-    // Mural de urgências (HU09)
+    // Mural de urgências (RF07/HU09)
     Route::post('/instituicao/alertas', [AlertaController::class, 'store'])->name('alertas.store');
     Route::patch('/instituicao/alertas/{id}/encerrar', [AlertaController::class, 'encerrar'])->name('alertas.encerrar');
 });
 
-// 5. Rotas do Administrador (Pré-cadastro, Aprovação e Rejeição)
+// 5. Rotas do Administrador (Pré-cadastro, Aprovação e Rejeição) (RF06/HU02)
 Route::middleware('auth:web')->group(function () {
     
     Route::post('/admin/hemocentros/pre-cadastro', function (Illuminate\Http\Request $request) {
@@ -193,7 +193,7 @@ Route::middleware('auth:web')->group(function () {
     
 });
 
-// 6. Cadastro público de doadores e instituições (só para quem ainda não está logado)
+// 6. Cadastro público de doadores e instituições (só para quem ainda não está logado) (RF01/HU01 e RF06/HU02)
 Route::middleware('guest:web,doador,hemocentro')->group(function () {
     Route::get('/register/doador', function () {
         return view('auth.register-doador');

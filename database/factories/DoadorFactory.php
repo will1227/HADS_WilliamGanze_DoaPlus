@@ -29,11 +29,13 @@ class DoadorFactory extends Factory
         ];
     }
 
+    // Nos testes: doador com um tipo sanguíneo específico
     public function tipo(string $tipoSanguineo): static
     {
         return $this->state(fn () => ['tipo_sanguineo' => $tipoSanguineo]);
     }
 
+    // Nos testes: doador morando em uma coordenada específica
     public function em(float $latitude, float $longitude): static
     {
         return $this->state(fn () => ['latitude' => $latitude, 'longitude' => $longitude]);

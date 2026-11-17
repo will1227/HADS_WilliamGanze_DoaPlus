@@ -80,6 +80,7 @@
     <p class="mt-8 text-cinza">Já tem conta? <a href="{{ route('login') }}" class="text-tinta underline underline-offset-4 hover:text-sangue">Entrar</a></p>
 
     <script>
+        // Coloca pontos e traço no CPF enquanto a pessoa digita
         function maskCpf(input) {
             let value = input.value.replace(/\D/g, '');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
@@ -88,6 +89,7 @@
             input.value = value;
         }
 
+        // Não deixa enviar o cadastro se o CPF não tiver 11 números
         document.getElementById('formDoador').addEventListener('submit', function (e) {
             const cpf = document.getElementById('cpf');
             if (cpf.value.replace(/\D/g, '').length !== 11) {

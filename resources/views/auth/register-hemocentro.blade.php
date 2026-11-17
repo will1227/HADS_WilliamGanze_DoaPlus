@@ -47,6 +47,7 @@
     <p class="mt-8 text-cinza">Já tem conta? <a href="{{ route('login') }}" class="text-tinta underline underline-offset-4 hover:text-sangue">Entrar</a></p>
 
     <script>
+        // Coloca pontos, barra e traço no CNPJ enquanto a pessoa digita
         function maskCnpj(input) {
             let value = input.value.replace(/\D/g, '');
             value = value.replace(/^(\d{2})(\d)/, '$1.$2');
@@ -56,6 +57,7 @@
             input.value = value;
         }
 
+        // Formata o telefone como (99) 99999-9999
         function maskPhone(input) {
             let value = input.value.replace(/\D/g, '');
             value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
@@ -63,6 +65,7 @@
             input.value = value;
         }
 
+        // Não deixa enviar o cadastro se o CNPJ não tiver 14 números
         document.getElementById('formHemo').addEventListener('submit', function (e) {
             const cnpj = document.getElementById('cnpj');
             if (cnpj.value.replace(/\D/g, '').length !== 14) {

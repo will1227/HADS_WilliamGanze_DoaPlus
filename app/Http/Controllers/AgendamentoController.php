@@ -11,17 +11,7 @@ use Illuminate\Validation\Rule;
 
 class AgendamentoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $agendamentos = Agendamento::with(['doador', 'hemocentro'])
-            ->latest('data_hora')->paginate(15);
-
-        return view('agendamentos.index', compact('agendamentos'));
-    }
-
+    // Abre a tela de agendar com os hemocentros ativos. Quem já tem agendamento em aberto volta pro painel (RF02/HU04)
     public function create(Request $request)
     {
         if ($request->user('doador')->agendamentosEmAberto()->exists()) {
@@ -33,6 +23,7 @@ class AgendamentoController extends Controller
         return view('agendamentos.create', compact('hemocentros'));
     }
 
+    // Salva o agendamento do doador, depois de checar se ele pode doar e se o horário é futuro (RF02/HU04)
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -79,36 +70,7 @@ class AgendamentoController extends Controller
         return redirect()->route('dashboard')->with('status', 'Agendamento marcado com sucesso!');
     }
 
-    public function show(string $id)
-    {
-        $agendamento = Agendamento::with(['doador', 'hemocentro'])->findOrFail($id);
-
-        return view('agendamentos.show', compact('agendamento'));
-    }
-
-    public function edit(string $id)
-    {
-        $agendamento = Agendamento::findOrFail($id);
-        $doadores = Doador::orderBy('nome')->get();
-        $hemocentros = Hemocentro::where('status', 'ativo')->orderBy('nome')->get();
-
-        return view('agendamentos.edit', compact('agendamento', 'doadores', 'hemocentros'));
-    }
-
-    public function update(Request $request, string $id)
-    {
-        $agendamento = Agendamento::findOrFail($id);
-
-        $validated = $request->validate([
-            'data_hora' => 'required|date',
-            'status' => 'required|in:pendente,confirmado,cancelado',
-        ]);
-
-        $agendamento->update($validated);
-
-        return redirect()->route('agendamentos.index')->with('success', 'Agendamento atualizado.');
-    }
-
+    // O hemocentro confirma, cancela ou conclui o agendamento. Ao concluir, a doação entra no histórico do doador (RF09/HU05 e RF08/HU06)
     public function atualizarStatus(Request $request, string $id)
     {
         $validated = $request->validate([
@@ -152,11 +114,4 @@ class AgendamentoController extends Controller
         return redirect()->route('dashboard')->with('status', $mensagens[$validated['status']]);
     }
 
-    public function destroy(string $id)
-    {
-        $agendamento = Agendamento::findOrFail($id);
-        $agendamento->delete();
-
-        return redirect()->route('agendamentos.index')->with('success', 'Agendamento cancelado.');
-    }
 }

@@ -12,7 +12,7 @@
     <form action="{{ route('agendamentos.store') }}" method="POST" class="mt-10">
         @csrf
 
-        {{-- Escolha do local no mesmo desenho da lista "Onde doar" da tela inicial --}}
+        {{-- Escolha do local no mesmo desenho da lista "Onde doar" da tela inicial (RF02/HU04) --}}
         @php($selecionado = old('fk_hemocentro_id', request('hemocentro')))
         <fieldset>
             <legend class="secao-cab w-full">

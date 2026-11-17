@@ -18,6 +18,7 @@ class Agendamento extends Model
         'fk_doador_id', 'fk_hemocentro_id', 'data_hora', 'status'
     ];
 
+    // Faz o Laravel tratar data_hora como data (Carbon)
     protected function casts(): array
     {
         return [
@@ -25,11 +26,13 @@ class Agendamento extends Model
         ];
     }
 
+    // Doador que marcou o agendamento
     public function doador(): BelongsTo
     {
         return $this->belongsTo(Doador::class, 'fk_doador_id');
     }
 
+    // Hemocentro onde a doação vai acontecer
     public function hemocentro(): BelongsTo
     {
         return $this->belongsTo(Hemocentro::class, 'fk_hemocentro_id');

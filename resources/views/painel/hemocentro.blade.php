@@ -173,7 +173,7 @@
                             </p>
                         </div>
                         <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 pl-[1.75rem]">
-                            {{-- A coleta só pode ser registrada a partir do dia agendado --}}
+                            {{-- A coleta só pode ser registrada a partir do dia agendado (RF08/HU06) --}}
                             @if ($agendamento->data_hora->isAfter(today()->endOfDay()))
                                 <p class="text-sm text-cinza">Registro da doação liberado no dia {{ $agendamento->data_hora->format('d/m') }}.</p>
                             @else
@@ -199,7 +199,7 @@
         </section>
     </div>
 
-    {{-- Mural de urgências (HU09): publicar e encerrar alertas de estoque --}}
+    {{-- Mural de urgências (RF07/HU09): publicar e encerrar alertas de estoque --}}
     <div id="alertas" class="mt-16 grid gap-12 lg:grid-cols-2">
         <section>
             <div class="secao-cab">

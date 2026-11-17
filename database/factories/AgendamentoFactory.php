@@ -27,6 +27,7 @@ class AgendamentoFactory extends Factory
         ];
     }
 
+    // Nos testes: agendamento ainda pendente
     public function pendente(): static
     {
         return $this->state(fn () => ['status' => 'pendente']);
